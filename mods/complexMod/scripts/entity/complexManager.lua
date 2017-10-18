@@ -416,8 +416,6 @@ end
 -- ######################################################################################################### --
 function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplexData, playerIndex)
     if not checkEntityInteractionPermissions(Entity(), unpack(mT.permissions[1].requiredPermissions)) then
-        print(unpack(mT.permissions[1].requiredPermissions))
-        print("has Perm?", Player(callingPlayer).alliance:hasPrivilege(callingPlayer, 5))
         updatePlan()
         return
     end
@@ -453,9 +451,9 @@ function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplex
     end
     -- get the money required for the plan
     local requiredMoney = connectorPipePlan:getMoneyValue()
+    if not canPay then -- if there was an error, print it
     local requiredResources = {connectorPipePlan:getResourceValue()}
     local canPay, msg, args = player:canPay(requiredMoney, unpack(requiredResources))
-    if not canPay then -- if there was an error, print it
         player:sendChatMessage(self.title, 1, msg, unpack(args))
         return
     end
@@ -487,7 +485,7 @@ function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplex
     end
     addedFactory:destroyCargo(addedFactory.maxCargoSpace)
 
-    --Sector():deleteEntityJumped(addedFactory)
+    Sector():deleteEntityJumped(addedFactory)
 
 
     if Entity():hasScript(FSCRIPT) then
