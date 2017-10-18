@@ -1,0 +1,9 @@
+[0.89] proposed
+- Fixed crashes and general weird behavior with asynchronous Entity changes (This is what broke v0.88 since Avorion 0.13)[The build menu needs a manual input(button press/slider change/station selection) to properly show the next build phase]
+- Founding-stations for complexes can now have a different rootIndex than 0 (The whole mechanic behind got a lot more forgiving)
+- The stretching of the connections, when adding new stations in a single direction is now gone (New stations will still always be outside of the complexes Bounding Box, but without unused space)
+- Overview tab keeps correct colors when changing priority
+- Alliance permissions system is now implemented, but NOT ACTIVATED. It needs further testing, so no abuse can be made
+- Factories that need no ingredients and produce no garbage, but have >1 product(Noble-Metal-Mines, Gas-Collectors, ...), will now continue producing, if there is space for at least one product.
+- Moved to /mods/ directory. If you have Complexes in your Galaxy follow the updated installation instructions!
+- The construction Tab now shows the name of the subfactory you are currently connecting to

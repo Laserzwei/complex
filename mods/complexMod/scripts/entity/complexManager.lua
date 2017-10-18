@@ -57,7 +57,7 @@ end
 
 function initialize()
     local station = Entity()
-    
+
     if not station:hasScript(CFSCRIPT) then
         station:addScript(CFSCRIPT)
     end
@@ -66,6 +66,8 @@ function initialize()
             EntityIcon().icon = "data/textures/icons/pixel/crate.png"
         end
         InteractionText(station.index).text = Dialog.generateStationInteractionText(station, random())
+    else
+        mT.initialize()
     end
 
 end
@@ -88,12 +90,12 @@ end
 
 -- create all required UI elements for the client side
 function initUI()
-    
+
     local res = getResolution()*0.9
     local size = vec2(1100, 800)
-    
+
     synchComplexdata(nil, nil, true)
-    
+
     local menu = ScriptUI()
     window = menu:createWindow(Rect(getResolution()*0.5 - res * 0.5, getResolution()*0.5 + res*0.5))
 
@@ -106,11 +108,11 @@ function initUI()
 --===============================================================================Build Complex UI======================================================================================================
     local constructionTab = tabbedWindow:createTab("BCU"%_t, "data/textures/icons/brick-pile.png", "Complex Construction"%_t)
     createConstructionUI(constructionTab)
-    
+
 --===============================================================================Info Complex UI=======================================================================================================
     local infoTab = tabbedWindow:createTab("ICU"%_t, "data/textures/icons/blockstats.png", "Complex Overview"%_t)
     createOverviewUI(infoTab)
-    
+
 --===============================================================================Trading Complex UI====================================================================================================
     local tradingTab = tabbedWindow:createTab("TCU"%_t, "data/textures/icons/trade.png", "Complex Trading Overview"%_t)
     createTradingUI(tradingTab)
@@ -177,7 +179,7 @@ function cmOnConstructionButtonPress(constructionData, addedPlan, addedComplexDa
     if basefab ~= nil then
         indexedComplexData[1] = basefab
     end
-    
+
     indexedComplexData[#indexedComplexData + 1] = addedComplexData
     invokeServerFunction("startConstruction", constructionData, addedPlan, indexedComplexData, Player().index)
     debugPrint(3, "pre Fab added", indexedComplexData)
@@ -200,7 +202,7 @@ function synchSingleComplexdata(priority, data, calledOnServer)
         data.relativeCoords = tableToVec3(data.relativeCoords)
          debugPrint(4, "relativeCoords Table")
     end
-    
+
     if onServer() == true then
         if calledOnServer == nil then
             invokeClientFunction(Player(), "synchSingleComplexdata", priority, data, true)
@@ -220,11 +222,11 @@ function synchComplexdata(pIndexedComplexData, calledOnServer, isrequest)
     end
     if isrequest == true then
         if onServer() then
-            if callingPlayer ~= nil then 
-                invokeClientFunction(Player(callingPlayer), "synchComplexdata", indexedComplexData, true) 
+            if callingPlayer ~= nil then
+                invokeClientFunction(Player(callingPlayer), "synchComplexdata", indexedComplexData, true)
                 return
             else
-                --broadcastInvokeClientFunction("synchComplexdata", indexedComplexData, true) 
+                --broadcastInvokeClientFunction("synchComplexdata", indexedComplexData, true)
                 debugPrint(1, "wrong player:", nil, callingPlayer, calledOnServer)
                 return
             end
@@ -247,7 +249,7 @@ function synchComplexdata(pIndexedComplexData, calledOnServer, isrequest)
         end
         pIndexedComplexData[priority] = data
     end
-    
+
     if onServer() == true then
         if calledOnServer == nil then
             broadcastInvokeClientFunction("synchComplexdata", pIndexedComplexData, true)
@@ -288,7 +290,7 @@ function updateComplexdata(pIndexedComplexData)
 end
 
 function passChangedTradingDataToTT(pTradingData)
-    if onServer() == true then 
+    if onServer() == true then
         debugPrint(0, "passing TradingData to Server is not allowed!")
     else
         updateTradingdata(pTradingData)
@@ -297,7 +299,7 @@ end
 
 function synchProductionData(pProductionData, calledOnServer)
     debugPrint(3,"sync of ProductionData", pProductionData)
-    if onServer() == true then 
+    if onServer() == true then
         if calledOnServer == nil then
             broadcastInvokeClientFunction("synchProductionData", pProductionData, true)
             updateProductionData(pProductionData)
@@ -316,7 +318,7 @@ function synchProductionData(pProductionData, calledOnServer)
 end
 
 function updateProductionData(pProductionData)
-    if onServer() == true then 
+    if onServer() == true then
         productionData = pProductionData -- To be able to save it on Sector-unload
     else
         --no need to store it on the clientside. We just pass it directly to the overview-tab
@@ -356,7 +358,7 @@ function tRN(number)
     if number == nil then return 0 end
     number = math.floor(number*100)/100     --keep last 2 digit
     local formatted = number
-    while true do  
+    while true do
         formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
         if (k==0) then
             break
@@ -376,9 +378,9 @@ function tableToVec3(tab)
 end
 
 function removeMissingFactories()
-    local complex = Entity():getPlan()   
+    local complex = Entity():getPlan()
     local removedSomething = false
-    for index,data in pairs(indexedComplexData) do 
+    for index,data in pairs(indexedComplexData) do
         local nodeID = data.factoryBlockId
         if not complex:getBlock(nodeID) then
             debugPrint(1, data.name.." has been removed from Complex: ", nil, Entity().name, Entity().title)
@@ -391,11 +393,11 @@ function removeMissingFactories()
             removedSomething = true
         end
     end
-    
+
     if removedSomething == true then
         local t = 1
         local cleanList = {}
-        for index,data in pairs(indexedComplexData) do 
+        for index,data in pairs(indexedComplexData) do
             cleanList[t] = data
             t = t + 1
         end
@@ -414,6 +416,8 @@ end
 -- ######################################################################################################### --
 function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplexData, playerIndex)
     if not checkEntityInteractionPermissions(Entity(), unpack(mT.permissions[1].requiredPermissions)) then
+        print(unpack(mT.permissions[1].requiredPermissions))
+        print("has Perm?", Player(callingPlayer).alliance:hasPrivilege(callingPlayer, 5))
         updatePlan()
         return
     end
@@ -428,7 +432,7 @@ function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplex
     local addedFactory = Entity(constructionData[0].targetID)
     local newComplex =self:getPlan()
     local addedFactoryPlan = addedFactory:getPlan()
-    
+
     local timer = Timer()
     timer:start()
     local player = Player(callingPlayer)
@@ -442,7 +446,7 @@ function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplex
     end
     timer:stop()
     debugPrint(4, "Time check", nil, "took ".. timer.microseconds/1000 .."ms for faulty complexdata check" )
-    
+
     --check if the player is allowed to change the Complex
     if not checkEntityInteractionPermissions(Entity(),AlliancePrivilege.ManageStations) then
         return
@@ -455,11 +459,11 @@ function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplex
         player:sendChatMessage(self.title, 1, msg, unpack(args))
         return
     end
-    
+
     -- let the player pay
     player:pay(requiredMoney, unpack(requiredResources))
     player:sendChatMessage(self.title, 0, "Complex Construction begins.")
-    
+
     --extending Complex from data send
     newComplex:addBlock(tableToVec3(constructionData[1].position), tableToVec3(constructionData[1].size), constructionData[1].rootID, constructionData[1].BlockID, ColorRGB(0.5, 0.5, 0.5), Material(MaterialType.Xanion) , Matrix(), BlockType.Hull)
     newComplex:addBlock(tableToVec3(constructionData[2].position), tableToVec3(constructionData[2].size), constructionData[2].rootID, constructionData[2].BlockID, ColorRGB(0.5, 0.5, 0.5), Material(MaterialType.Xanion) , Matrix(), BlockType.Hull)
@@ -469,23 +473,23 @@ function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplex
     newComplex:addPlanDisplaced(constructionData[4].blockID, addedFactoryPlan, addedFactoryPlan.rootIndex, tableToVec3(constructionData[4].position))
     --set new Complex
     self:setPlan(newComplex)
-    
+
     --carry over Crew and Storage
-    
+
     local crew = addedFactory.crew
     for crewman, num in pairs(crew:getMembers()) do
         self:addCrew(num, crewman)
     end
-    
+
     local facGoods = addedFactory:getCargos()
     for tg,num in pairs(facGoods)do
         self:addCargo(tg, num)
     end
     addedFactory:destroyCargo(addedFactory.maxCargoSpace)
-    
+
     --Sector():deleteEntityJumped(addedFactory)
 
-    
+
     if Entity():hasScript(FSCRIPT) then
         Entity():removeScript(FSCRIPT)
     end
@@ -512,7 +516,7 @@ function restore(restoreData)
         if (restoreData.indexedComplexData == nil or next(restoreData.indexedComplexData) == nil) and not Entity():hasScript(FSCRIPT) then
             debugPrint(0, "[CRITICAL] Trying to load backup data from "..CFSCRIPT, nil, "On Complex: ".. (Entity().title or "error") .. ", "..(Entity().name or "error"), "in sector:", Sector():getCoordinates() )
             local status, data  = Entity():invokeFunction(CFSCRIPT, "getComplexData2")
-            if status == 0 then 
+            if status == 0 and next(data) then
                 debugPrint(0, "[less - CRITICAL] Got data from "..CFSCRIPT, data, ". You lucky Bastard!")
                 indexedComplexData = data
             elseif status == 3 then -- Does not have CFSCRIPT, so it's not a complex
@@ -552,10 +556,9 @@ function secure()
         data.relativeCoords = vec3ToTable(data.relativeCoords)
         pIndexedComplexData[index] = data
     end
-    
+
     savedata["productionData"] = pProductionData
     savedata["indexedComplexData"] = pIndexedComplexData
     savedata.bonusValues = bonusValues
     return savedata
 end
-

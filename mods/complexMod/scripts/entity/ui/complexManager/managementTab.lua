@@ -6,7 +6,7 @@ managementTab = {}
 VERSION = "[0.89] "
 MOD = "[CPX3]"
 
-DEBUGLEVEL = 2              -- is overwritten by DEBUGLEVEL in complexManager.lua 
+DEBUGLEVEL = 2              -- is overwritten by DEBUGLEVEL in complexManager.lua
 
 --data
 managementTab.allPermissions = {
@@ -71,6 +71,12 @@ function debugPrint(debuglvl, msg, tableToPrint, ...)
     end
 end
 
+function managementTab.initialize()
+  if onServer() then
+    managementTab.getPermissions()
+  end
+end
+
 function managementTab.createManagementUI(tabWindow)
     windowContainer = tabWindow:createContainer(Rect(vec2(0, 0), tabWindow.size))
     local offset = 300
@@ -78,12 +84,12 @@ function managementTab.createManagementUI(tabWindow)
     local y = 80
     local spacing = 30
     local heigt = 20
-    
+
     for i, permission in ipairs(managementTab.allPermissions) do
         local pos = vec2(offset + (spacing + size.x)*i, heigt + heigt*((i-1)%3))
         local label = windowContainer:createLabel(pos, permission, 12)
     end
-    
+
     windowContainer:createLabel(vec2(10, y-10), "Grant Permissions for:", 18)
     local label
     local lblY = y
@@ -100,7 +106,7 @@ function managementTab.createManagementUI(tabWindow)
             checkBox.tooltip = permission
             checkBox.checked = 1
             if Faction(Entity().factionIndex).isPlayer then
-                checkBox.active = false 
+                checkBox.active = false
                 checkBox.tooltip = "No permission Management for players. Transfer the complex to your alliance first."
             end
             table.insert(managementTab.checkBoxList, checkBox)
@@ -108,13 +114,13 @@ function managementTab.createManagementUI(tabWindow)
         end
     end
     y = y + 40
-    
+
     if not checkEntityInteractionPermissions(Entity(), AlliancePrivilege.EditRanks) then
         for i, cb in pairs(managementTab.checkBoxList) do
             cb.active = false
         end
     end
-    
+
     local textboxSize = vec2(200,35)
     local buttonSize = vec2(120, 35)
     --Station naming
@@ -123,18 +129,18 @@ function managementTab.createManagementUI(tabWindow)
     stationNameButton = windowContainer:createButton(Rect(vec2(spacing + textboxSize.x, y), vec2(2*spacing + textboxSize.x, y) + buttonSize), "Change Name", "onChangeName")
     stationNameButton.maxTextSize = 16
     y = y + 40
-    
+
     --station title
     stationTitleTextbox = windowContainer:createTextBox(Rect(vec2(0, y), vec2(spacing, y) + textboxSize), "")
     stationTitleTextbox.text = Entity().title
     stationNameButton = windowContainer:createButton(Rect(vec2(spacing + textboxSize.x, y), vec2(2*spacing + textboxSize.x, y) + buttonSize), "Change Title", "onChangeTitle")
     stationNameButton.maxTextSize = 16
     y = y + 40
-    
+
     --transfer ownership
     transferButton = windowContainer:createButton(Rect(vec2(0, y), vec2(spacing, y) + textboxSize), "", "onTransferOwnershipPressed")
     transferButton.maxTextSize = 16
-    if Faction(Entity().factionIndex).isPlayer then 
+    if Faction(Entity().factionIndex).isPlayer then
         transferButton.caption = "Transfer Ownership To Alliance"
     else
         transferButton.caption = "Transfer Ownership To Player"
@@ -146,8 +152,8 @@ function managementTab.createManagementUI(tabWindow)
     sellButton.maxTextSize = 16
     sellButton.tooltip = "Worth: ".. createMonetaryString(networth/0.7) .."Sell for: "..createMonetaryString(networth)
     managementTab.uiInitialized = true
-    
-    
+
+
     -- warn box
     local size = vec2(550, 230)
     local res = getResolution()
@@ -179,8 +185,8 @@ function managementTab.createManagementUI(tabWindow)
     local vsplit = UIVerticalSplitter(hsplit.bottom, 10, 0, 0.5)
     warnWindow:createButton(vsplit.left, "Sell"%_t, "onConfirmSellButtonPress")
     warnWindow:createButton(vsplit.right, "Cancel"%_t, "onCancelSellButtonPress")
-    
-    
+
+
     managementTab.getPermissions()
     client_receivePermissions(managementTab.permissions)
 end
@@ -214,7 +220,7 @@ function onGenericPermissionCheckboxChecked(cb)
         else
             client_requestChangePermissions(complexPermission, alliancePermission, false)
         end
-        
+
     end
 end
 
@@ -274,7 +280,7 @@ function client_receivePermissions(pPermissions)
             cb.active = false
         end
     end
-    managementTab.permissions = pPermissions 
+    managementTab.permissions = pPermissions
     managementTab.uiInitialized = false   --checkboxes don't have an option to be checked without calling the checked function
     for i, cb in pairs(managementTab.checkBoxList) do
         cb.checked = false
@@ -285,7 +291,7 @@ function client_receivePermissions(pPermissions)
             managementTab.checkBoxList[checkboxIndex].checked = true
         end
     end
-    
+
     managementTab.uiInitialized = true
 end
 
@@ -322,8 +328,8 @@ function server_processChangePermission(complexPermission, alliancePermission, s
                 end
             else
                 alliance:addRank(managementTab.permissions[complexPermission].permission, "")
-                for _, perm in pairs(managementTab.permissions[complexPermission].requiredPermissions) do 
-                    alliance:addRankPrivilege(managementTab.permissions[complexPermission].permission, perm) 
+                for _, perm in pairs(managementTab.permissions[complexPermission].requiredPermissions) do
+                    alliance:addRankPrivilege(managementTab.permissions[complexPermission].permission, perm)
                 end
             end
             managementTab.getPermissions()
@@ -355,9 +361,9 @@ end
 function transferOwnership()
     local factionIndex = Entity().factionIndex
     if not factionIndex then debugPrint(0, "[Critical] Complex without Faction", nil, Entity().index) return end
-    
+
     if not checkEntityInteractionPermissions(Entity(), unpack(managementTab.permissions[5].requiredPermissions)) then return end
-    
+
     if Faction(factionIndex).isAlliance then
         Entity().factionIndex = callingPlayer
     elseif Faction(factionIndex).isPlayer then
@@ -367,9 +373,9 @@ function transferOwnership()
             broadcastInvokeClientFunction("client_receivePermissions", managementTab.permissions)
         end
     else
-        
+
     end
-    
+
 end
 
 function managementTab.transmitComplexNetWorth(pIndexedComplexData)
@@ -378,13 +384,13 @@ function managementTab.transmitComplexNetWorth(pIndexedComplexData)
     for _, data in pairs(pIndexedComplexData) do
         local production = data.factoryTyp
         money =  money + managementTab.getSingleFactoryCost(production)
-        
+
     end
     networth = money * 0.7
     if managementTab.uiInitialized then
         sellButton.tooltip = "Worth: ".. createMonetaryString(networth/0.7) .. "\nSell for: " .. createMonetaryString(networth)
     end
-    
+
 end
 
 function SellComplex(clientMoney)
