@@ -1,4 +1,4 @@
-[0.89] proposed
+[0.89]
 - Fixed crashes and general weird behavior with asynchronous Entity changes (This is what broke v0.88 since Avorion 0.13)[The build menu needs a manual input(button press/slider change/station selection) to properly show the next build phase]
 - Founding-stations for complexes can now have a different rootIndex than 0 (The whole mechanic behind got a lot more forgiving)
 - The stretching of the connections, when adding new stations in a single direction is now gone (New stations will still always be outside of the complexes Bounding Box, but without unused space)
