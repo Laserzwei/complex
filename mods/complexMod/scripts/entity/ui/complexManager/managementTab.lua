@@ -142,6 +142,9 @@ function managementTab.createManagementUI(tabWindow)
     transferButton.maxTextSize = 16
     if Faction(Entity().factionIndex).isPlayer then
         transferButton.caption = "Transfer Ownership To Alliance"
+        if not Player().alliance then
+            transferButton.active = false
+        end
     else
         transferButton.caption = "Transfer Ownership To Player"
     end

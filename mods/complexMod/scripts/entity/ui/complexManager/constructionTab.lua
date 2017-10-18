@@ -196,13 +196,17 @@ function createConstructionUI(tabWindow)
 end
 
 function onRefreshPressed()
+    updateStationCombo()
     updatePlan()
 end
 
 function updateCT(timestep)
     if Entity():getValue("complexChanged") and Entity():getPlan():getBlock(currentNodeIndex) then     --just because Entities get asynchronously changed and thus can't be used event driven.
         Entity():setValue("complexChanged", nil)
-        updatePlan()
+        if UIinititalised then
+            updateStationCombo()
+            updatePlan()
+        end
     end
 end
 

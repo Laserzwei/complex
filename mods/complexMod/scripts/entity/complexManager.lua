@@ -416,6 +416,7 @@ end
 -- ######################################################################################################### --
 function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplexData, playerIndex)
     if not checkEntityInteractionPermissions(Entity(), unpack(mT.permissions[1].requiredPermissions)) then
+        debugPrint(0, "Permission mismatch")
         updatePlan()
         return
     end
@@ -444,20 +445,17 @@ function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplex
     end
     timer:stop()
     debugPrint(4, "Time check", nil, "took ".. timer.microseconds/1000 .."ms for faulty complexdata check" )
-
-    --check if the player is allowed to change the Complex
-    if not checkEntityInteractionPermissions(Entity(),AlliancePrivilege.ManageStations) then
-        return
-    end
+    print("here")
     -- get the money required for the plan
     local requiredMoney = connectorPipePlan:getMoneyValue()
-    if not canPay then -- if there was an error, print it
     local requiredResources = {connectorPipePlan:getResourceValue()}
     local canPay, msg, args = player:canPay(requiredMoney, unpack(requiredResources))
+    if not canPay then -- if there was an error, print it
         player:sendChatMessage(self.title, 1, msg, unpack(args))
         return
     end
 
+    print("there")
     -- let the player pay
     player:pay(requiredMoney, unpack(requiredResources))
     player:sendChatMessage(self.title, 0, "Complex Construction begins.")
