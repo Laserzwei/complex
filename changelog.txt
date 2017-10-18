@@ -7,3 +7,4 @@
 - Factories that need no ingredients and produce no garbage, but have >1 product(Noble-Metal-Mines, Gas-Collectors, ...), will now continue producing, if there is space for at least one product.
 - Moved to /mods/ directory. If you have Complexes in your Galaxy follow the updated installation instructions!
 - The construction Tab now shows the name of the subfactory you are currently connecting to
+- NPC trading is now integrated into the mod. It can be disabled via the /mods/complexMod/config/config.lua file. (works with Better Docking http://www.avorion.net/forum/index.php/topic,3892.0.html)

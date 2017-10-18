@@ -3,9 +3,11 @@ if onServer() then
 package.path = package.path .. ";data/scripts/lib/?.lua"
 package.path = package.path .. ";data/scripts/?.lua"
 package.path = package.path .. ";?"
+package.path = package.path .. ";mods/complexMod/config/?.lua"
 
 require ("galaxy")
 require ("randomext")
+local complexConfig = require ("config")
 local AsyncShipGenerator = require ("asyncshipgenerator")
 
 -- Don't remove or alter the following comment, it tells the game the namespace this script lives in. If you remove it, the script will break.
@@ -37,9 +39,12 @@ local function hasTraders(station)
 end
 
 function Traders.update(timeStep)
-
+    print("trader alive")
     -- find all stations that buy or sell goods
     local scripts = {"consumer.lua", "seller.lua", "turretfactoryseller.lua", "factory.lua", "tradingpost.lua", "planetarytradingpost.lua"}
+    if complexConfig.enableNPCTrading then
+        table.insert(scripts, "complexFactory.lua")
+    end
     local sector = Sector()
 
     local tradingStations = {}
@@ -166,5 +171,5 @@ function Traders.update(timeStep)
 
 
 end
-if not pcall(require, "mods/complexMod/scripts/sector/traders") then print("Failed to load tradermodule of ComplexMod") else print("loaded tradermodule of ComplexMod")end
+
 end
