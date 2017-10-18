@@ -39,7 +39,6 @@ local function hasTraders(station)
 end
 
 function Traders.update(timeStep)
-    print("trader alive")
     -- find all stations that buy or sell goods
     local scripts = {"consumer.lua", "seller.lua", "turretfactoryseller.lua", "factory.lua", "tradingpost.lua", "planetarytradingpost.lua"}
     if complexConfig.enableNPCTrading then

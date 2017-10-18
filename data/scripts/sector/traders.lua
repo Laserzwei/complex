@@ -166,5 +166,5 @@ function Traders.update(timeStep)
 
 
 end
-if not pcall(require, "mods/complexMod/scripts/sector/traders") then print("Failed to load tradermodule of ComplexMod") else print("loaded tradermodule of ComplexMod")end
+if not pcall(require, "mods/complexMod/scripts/sector/traders") then print("Failed to load tradermodule of ComplexMod") end
 end
