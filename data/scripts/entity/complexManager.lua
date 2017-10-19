@@ -16,11 +16,17 @@ function debugPrint(debuglvl, msg, tableToPrint, ...)
     end
 end
 
+function update(timestep)
+    if Entity():getValue("managerMigrationFinished") then
+        print("Manager Terminate", Entity().name)
+        terminate()
+    end
+end
+
 function restore(restoreData)
     Entity():addScriptOnce("mods/complexMod/scripts/entity/complexManager.lua")
     local status = Entity():invokeFunction("mods/complexMod/scripts/entity/complexManager.lua", "restore", restoreData)
-    debugPrint(0,"Migrationstatus for ComplexManager: ", restoreData, status)
-    Entity():removeScript("data/scripts/entity/complexManager.lua")
-    terminate()
+    debugPrint(0,"Migrationstatus for ComplexManager: ", restoreData, Entity().name, status)
+    print("ComplexManager migration finished", Entity().name)
+    Entity():setValue("managerMigrationFinished", true)
 end
-

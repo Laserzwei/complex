@@ -16,10 +16,17 @@ function debugPrint(debuglvl, msg, tableToPrint, ...)
     end
 end
 
+function update(timestep)
+    if Entity():getValue("factoryMigrationFinished") then
+        print("Factory Terminate", Entity().name)
+        terminate()
+    end
+end
+
 function restore(restoreData)
     Entity():addScriptOnce("mods/complexMod/scripts/entity/merchants/complexFactory.lua")
     local status = Entity():invokeFunction("mods/complexMod/scripts/entity/merchants/complexFactory.lua", "restore", restoreData)
-    debugPrint(0,"Migrationstatus for ComplexFactory: ", restoreData, status)
-    Entity():removeScript("data/scripts/entity/merchants/complexFactory.lua")
-    terminate()
+    debugPrint(0,"Migrationstatus for ComplexFactory: ", restoreData, Entity().name, status)
+    print("complexFactory migration finished", Entity().name)
+    Entity():setValue("factoryMigrationFinished", true)
 end
