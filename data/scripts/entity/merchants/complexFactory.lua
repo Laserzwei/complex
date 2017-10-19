@@ -22,7 +22,7 @@ function update(timestep)
         terminate()
     end
 end
-
+--test
 function restore(restoreData)
     Entity():addScriptOnce("mods/complexMod/scripts/entity/merchants/complexFactory.lua")
     local status = Entity():invokeFunction("mods/complexMod/scripts/entity/merchants/complexFactory.lua", "restore", restoreData)
