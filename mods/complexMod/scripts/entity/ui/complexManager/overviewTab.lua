@@ -15,12 +15,12 @@ local maxEnergyLabel, nametag, factorySizeSelector
 local windowContainer
 local scrollFrame
 local split
-local uiTrashLiast = {}
+local uiTrashList = {}
 local changeSizeButton
 
 --data
 local indexedComplexData
-local productionData
+local productionData, productionValue
 local upgradeMap = {}
 
 function debugPrint(debuglvl, msg, tableToPrint, ...)
@@ -119,13 +119,13 @@ function updateOT(timestep)
 
 end
 
-function updateOTFactoryList(pProductionData)
-    --print("Data", Entity():getPlan():getStats().productionCapacity)
+function updateOTFactoryList(pProductionData, pProductionValue)
     if pProductionData ~= nil then
         productionData = pProductionData
     else
         productionData = productionData or {}
     end
+    productionValue = pProductionValue or 0
     if indexedComplexData == nil then return end
     if factoryList == nil then return end
     factoryList:clear()
@@ -162,6 +162,28 @@ function updateOTFactoryList(pProductionData)
     end
 end
 
+function getFullProductionCost()
+    local value = 0
+
+    for i,factory in ipairs(indexedComplexData) do
+        for _, result in pairs(factory.factoryTyp.results) do
+            local good = goods[result.name]
+            if good then
+                value = value + good.price * factory.size * result.amount * math.max(1, good.level)
+            end
+        end
+
+        for _, garbage in pairs(factory.factoryTyp.garbages) do
+            local good = goods[garbage.name]
+            if good then
+                value = value + good.price * factory.size * garbage.amount
+            end
+        end
+
+    end
+    return value
+end
+
 function updateOTListdataPanel()
     debugPrint(3,"Updating ListDataPanel" )
     if factoryList == nil then return end
@@ -170,7 +192,7 @@ function updateOTListdataPanel()
     if indexedComplexData == nil then return end
     if indexedComplexData[selectedIndex] == nil and selectedIndex > 0 then return end
     --clearing old data
-    for _,uiItem in pairs(uiTrashLiast) do
+    for _,uiItem in pairs(uiTrashList) do
         uiItem.visible = false
         uiItem = nil
     end
@@ -180,7 +202,7 @@ function updateOTListdataPanel()
         factorySizeSelector.visible = false
         maxEnergyLabel.visible = false
 
-        nametag.caption = "Complex Overview"
+        nametag.caption = "Complex Overview "
         local productions, consumption = {}, {}
         for index, data in pairs(indexedComplexData) do
             local production = data.factoryTyp
@@ -211,7 +233,7 @@ function updateOTListdataPanel()
         if next(consumption) then
             local pUI = scrollFrame:createLabel(vec2(x,y), "Consumption", 18)
             pUI.size = vec2(lblSize,pUI.size.y)
-            table.insert(uiTrashLiast, pUI)
+            table.insert(uiTrashList, pUI)
             y = y + 35
         end
         for name,amount in spairs(consumption) do
@@ -234,7 +256,7 @@ function updateOTListdataPanel()
             local ingredData = name%_t..": -"..amount.."/cycle " .. productionRatio
             pUI.caption = ingredData
             pUI.size = vec2(lblSize,pUI.size.y)
-            table.insert(uiTrashLiast, pUI)
+            table.insert(uiTrashList, pUI)
             y = y + 25
         end
         local x,y = scrollFrame.size.x/2 -10, 15
@@ -242,14 +264,14 @@ function updateOTListdataPanel()
             local pUI = scrollFrame:createLabel(vec2(x,y), "Production", 18)
             pUI.size = vec2(lblSize,pUI.size.y)
             scrollFrame:createFrame(pUI.rect)
-            table.insert(uiTrashLiast, pUI)
+            table.insert(uiTrashList, pUI)
             y = y + 35
         end
         for name,amount in spairs(productions, function(t,a,b) return t[b]["sorting"] < t[a]["sorting"] end) do
             local ingredData = name%_t..": "..amount.."/cycle"
             local pUI = scrollFrame:createLabel(vec2(x,y), ingredData, 14)
             pUI.size = vec2(lblSize,pUI.size.y)
-            table.insert(uiTrashLiast, pUI)
+            table.insert(uiTrashList, pUI)
             y = y + 25
         end
     else
@@ -267,42 +289,42 @@ function updateOTListdataPanel()
         if next(production.ingredients) then
             local pUI = scrollFrame:createLabel(vec2(x,y), "Consumption", 18)
             pUI.size = vec2(lblSize,pUI.size.y)
-            table.insert(uiTrashLiast, pUI)
+            table.insert(uiTrashList, pUI)
             y = y + 25
         end
         for _,ingredient in pairs(production.ingredients) do
             local ingredData = ingredient.name%_t..": -"..(ingredient.amount * size).."/cycle"
             local pUI = scrollFrame:createLabel(vec2(x, y), ingredData, 14)
             pUI.size = vec2(lblSize,pUI.size.y)
-            table.insert(uiTrashLiast, pUI)
+            table.insert(uiTrashList, pUI)
             y = y + 25
         end
         if next(production.results) then
             y = y + 10
             local pUI = scrollFrame:createLabel(vec2(x,y), "Production", 18)
             pUI.size = vec2(lblSize,pUI.size.y)
-            table.insert(uiTrashLiast, pUI)
+            table.insert(uiTrashList, pUI)
             y = y + 25
         end
         for _,result in pairs(production.results) do
             local ingredData = result.name%_t..": "..(result.amount * size).."/cycle"
             local pUI = scrollFrame:createLabel(vec2(x,y), ingredData, 14)
             pUI.size = vec2(lblSize,pUI.size.y)
-            table.insert(uiTrashLiast, pUI)
+            table.insert(uiTrashList, pUI)
             y = y + 25
         end
         if next(production.garbages) then
             y = y + 10
             local pUI = scrollFrame:createLabel(vec2(x,y), "Garbage", 18)
             pUI.size = vec2(lblSize,pUI.size.y)
-            table.insert(uiTrashLiast, pUI)
+            table.insert(uiTrashList, pUI)
             y = y + 25
         end
         for _,garbage in pairs(production.garbages) do
             local ingredData = garbage.name%_t..": "..(garbage.amount * size).."/cycle"
             local pUI = scrollFrame:createLabel(vec2(x,y), ingredData, 14)
             pUI.size = vec2(lblSize,pUI.size.y)
-            table.insert(uiTrashLiast, pUI)
+            table.insert(uiTrashList, pUI)
             y = y + 25
         end
 
@@ -346,7 +368,7 @@ function updateOTListdataPanel()
 
         local pUI = scrollFrame:createLabel(vec2(x, y), "Energy required for Factory size:", 16)
         pUI.size = vec2(lblSize,pUI.size.y)
-        table.insert(uiTrashLiast, pUI)
+        table.insert(uiTrashList, pUI)
         y = y + 30
         local comboIndex = 0
         for i = 2,10 do
@@ -386,11 +408,11 @@ function updateOTListdataPanel()
             end
             y = y + 25
 
-            table.insert(uiTrashLiast, pUI)
+            table.insert(uiTrashList, pUI)
         end
         y = y + 5
         changeSizeButton = scrollFrame:createButton(Rect(vec2(x,y), vec2(x+120, y +25)), "set size", "onSizeSet")
-        table.insert(uiTrashLiast, changeSizeButton)
+        table.insert(uiTrashList, changeSizeButton)
     end
 end
 
@@ -398,6 +420,10 @@ function updateOTComplexData(pIndexedComplexData)
     indexedComplexData = pIndexedComplexData
     updateOTListdataPanel()
     updateOTFactoryList()
+end
+
+function updateProductionValue(pVal)
+    productionValue = pVal
 end
 
 function onMoveUpPressed()

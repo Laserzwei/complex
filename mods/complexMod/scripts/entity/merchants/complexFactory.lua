@@ -15,13 +15,13 @@ DEBUGLEVEL = 2
 CMSCRIPT = "mods/complexMod/scripts/entity/complexManager.lua"
 subFactories = {}
 
-maxDuration = 15
-local currentProductionCycle
+local minDuration = 1.0
+local baseProductionCapacity = 100
+local currentProductionCycle = {}
 
 lowestPriceFactor = 0.5
 highestPriceFactor = 1.5
 
-local duration = 0
 local currentlyProducing = false
 --UI
 buyTab = nil
@@ -38,20 +38,18 @@ end
 
 function restore(data)
     if callingPlayer == nil then
-        duration = data.duration
         for id, dat in pairs(data.subFactories) do
             dat.nodeOffset = tableToVec3(dat.nodeOffset)
             dat.relativeCoords = tableToVec3(dat.relativeCoords)
             subFactories[id] = dat
         end
-        currentProductionCycle = data.currentProductionCycle
+        currentProductionCycle = data.currentProductionCycle or {}
         restoreTradingGoods(data.tradingData)
     end
 end
 
 function secure()
     local data = {}
-    data.duration = duration
     local savedata = {}
     for id, dat in pairs(subFactories) do
         dat.nodeOffset = vec3ToTable(dat.nodeOffset)
@@ -224,34 +222,11 @@ function pGetMaxStock(goodName)
     return getMaxStock(goodName)
 end
 
---[[
-function sync(data)
-    if onClient() then
-        if not data then
-            invokeServerFunction("sync")
-        else
-            maxDuration = data.maxDuration
-            maxNumProductions = data.maxNumProductions
-            factorySize = data.maxNumProductions - 1
-            production = data.production
-
-            InteractionText().text = Dialog.generateStationInteractionText(Entity(), random())
-
-        end
-    else
-        local data = {}
-        data.maxDuration = maxDuration
-        data.maxNumProductions = maxNumProductions
-        data.factorySize = factorySize
-        data.production = production
-
-        invokeClientFunction(Player(callingPlayer), "sync", data)
-    end
-end]]--
-
 -- this functions gets called when the indicator of the station is rendered on the client
 function renderUIIndicator(px, py, size)
-    if duration == nil or duration == 0 then return end
+    if currentProductionCycle.productionrequirement == nil or currentProductionCycle.processedP == nil then
+         return
+    end
     x = px - size / 2;
     y = py + size / 2;
 
@@ -273,12 +248,17 @@ function renderUIIndicator(px, py, size)
     sx = sx - 2
     sy = sy - 2
 
-    sx = sx * duration / maxDuration
+    sx = sx * math.min(1.0,currentProductionCycle.processedP / currentProductionCycle.productionrequirement)
 
     drawRect(Rect(dx, dy, sx + dx, sy + dy), ColorRGB(0.66, 0.66, 1.0));
 
 end
 
+function updateProcessedP(totalP, procP)
+    currentProductionCycle.productionrequirement = totalP
+    currentProductionCycle.processedP = procP
+    currentlyProducing = true
+end
 
 function passChangeInStockLimit(goodName, amount)
     local status = assignCargo(goodName, amount)
@@ -286,17 +266,12 @@ function passChangeInStockLimit(goodName, amount)
 end
 
 function startNextProductionCycle(isProducing)
-    duration = 0
-    if onServer() == true then
-        local goodsToConsume
-        currentProductionCycle, goodsToConsume = getAllPossibleProduction()
-        if currentProductionCycle ~= nil and next(currentProductionCycle) then
-            consumeGoods(goodsToConsume)
-            broadcastInvokeClientFunction("startNextProductionCycle", true)
-            currentlyProducing = true
-        end
-    else
-        currentlyProducing = isProducing
+    currentProductionCycle.processedP = 0
+    currentProductionCycle.production, currentProductionCycle.consumption, currentProductionCycle.productionrequirement = getAllPossibleProduction()
+    if currentProductionCycle.production ~= nil and next(currentProductionCycle.production) then
+        consumeGoods(currentProductionCycle.consumption)
+        broadcastInvokeClientFunction("updateProcessedP", currentProductionCycle.productionrequirement, 0)
+        currentlyProducing = true
     end
 end
 
@@ -304,8 +279,9 @@ function getAllPossibleProduction()
     local productionList = {}               --has productions from productionIndex.lua
     local goodsGettingProduced = {}         -- [good.name] = amount
     local goodRequired = {}                 -- [good.name] = amount
-    local i = 0
+    local productionValue = 0
     for i,data in ipairs(subFactories) do
+        local value = 0
         local size = data.size
         local hasEnoughResources = hasEnoughResourcesForProduction(data.factoryTyp, size, goodRequired)
         if hasEnoughResources == true then
@@ -317,6 +293,10 @@ function getAllPossibleProduction()
                     hasSpaceForResults = false
                     debugPrint(3, "result false", data, result.name, getMaxGoods(result.name))
                 else
+                    local good = goods[result.name]
+                    if good then
+                        value = value + good.price * size * result.amount * math.max(1, good.level)
+                    end
                     hasSpaceForSingleResult = true
                 end
             end
@@ -330,6 +310,11 @@ function getAllPossibleProduction()
                 if (getNumGoods(garbage.name) + garbage.amount * size + (goodsGettingProduced[garbage.name] or 0 )) > getMaxGoods(garbage.name) then
                     hasSpaceForGarbage = false
                     debugPrint(3, "garbage false", data, garbage.name, getMaxGoods(garbage.name))
+                else
+                    local good = goods[garbage.name]
+                    if good then
+                        value = value + good.price * size * garbage.amount
+                    end
                 end
             end
 
@@ -339,15 +324,18 @@ function getAllPossibleProduction()
                 end
                 productionList[i] = data
             end
+
+            if hasSpaceForResults then
+                productionValue = productionValue + value
+            end
         end
     end
 
-    if Entity():hasScript(CMSCRIPT) then
-        Entity():invokeFunction(CMSCRIPT, "synchProductionData", productionList)
-    else
-        debugPrint(0, "has no Complex Manager")
+    if Entity():hasScript(CMSCRIPT) and #subFactories > 1 then
+        print(Entity().name,productionValue)
+        Entity():invokeFunction(CMSCRIPT, "synchProductionData", productionList, productionValue)
     end
-    return productionList, goodRequired
+    return productionList, goodRequired, productionValue
 end
 
 function consumeGoods(goodsToConsume)
@@ -372,30 +360,26 @@ function hasEnoughResourcesForProduction(production, size, goodRequired)
 end
 
 function getUpdateInterval()
-    return 1.0
+    return minDuration
 end
 
 -- this function gets called once each frame, on client and server
-function update(timeStep)
+function updateServer(timeStep)
+    local productionCapacity = Plan():getStats().productionCapacity + (baseProductionCapacity * math.max(1,#subFactories))
+    local productionProduced = productionCapacity * timeStep
     if currentlyProducing == true then
-        duration = duration + timeStep
-        if duration >= maxDuration then
+        currentProductionCycle.processedP = currentProductionCycle.processedP + productionProduced
+        broadcastInvokeClientFunction("updateProcessedP", currentProductionCycle.productionrequirement, currentProductionCycle.processedP)
+        if currentProductionCycle.processedP >= currentProductionCycle.productionrequirement then
+            debugPrint(3, "nextProductiona after", currentProductionCycle, Entity().index.string)
             currentlyProducing = false
-            duration = 0
-            if onServer() then
-                addProducts(currentProductionCycle)
-                currentProductionCycle = nil
-                debugPrint(3, "nextProductiona after", currentProductionCycle, Entity().index)
-                startNextProductionCycle()
-            end
+            addProducts(currentProductionCycle.production)
+            currentProductionCycle = {}
+            startNextProductionCycle()
         end
     else
-        if onServer() then
-            debugPrint(3, "nextProduction", nil, Entity().index.string)
-            startNextProductionCycle()
-            --updateOrganizeGoodsBulletins(timeStep)
-            --updateDeliveryBulletins(timeStep)
-        end
+        debugPrint(3, "nextProduction", nil, Entity().index.string)
+        startNextProductionCycle()
     end
 end
 
@@ -403,7 +387,7 @@ function addProducts(data)
     if onServer() and callingPlayer == nil then
         local totalAdded = {}
         local factoryHasProduced = {}                       --factoryHasProduced[priority] = {good.name, amount}
-        for i,data in pairs(currentProductionCycle) do
+        for i,data in pairs(currentProductionCycle.production) do
             local production = data.factoryTyp
             local size = data.size
             for _, result in pairs(production.results) do

@@ -39,6 +39,7 @@ local targetCoreBlockCoord
 local productionData = {}
 local constructionData = {}     --{[buildorder] = {["BlockID"]= num, ["position"] = {x,y,z}, ["size"] = {x,y,z}, ["rootID"] = rootID}}}
 local bonusValues = {}
+local productionValue
 
 local timepassedAfterLastCheck = 65
 
@@ -297,32 +298,15 @@ function passChangedTradingDataToTT(pTradingData)
     end
 end
 
-function synchProductionData(pProductionData, calledOnServer)
+function synchProductionData(pProductionData, productionValue)
     debugPrint(3,"sync of ProductionData", pProductionData)
-    if onServer() == true then
-        if calledOnServer == nil then
-            broadcastInvokeClientFunction("synchProductionData", pProductionData, true)
-            updateProductionData(pProductionData)
-        else
-            debugPrint(0,"synchProductionData called from Client - This is not allowed!")
-            return
-        end
+    if onServer() then
+        productionValue = productionValue or 0
+        broadcastInvokeClientFunction("updateOTFactoryList", pProductionData, productionValue)
+        broadcastInvokeClientFunction("updateOTListdataPanel")
+        productionData = pProductionData
     else
-        if calledOnServer == true then
-            updateProductionData(pProductionData)
-        else
-            debugPrint(0,"synchProductionData called on Client- This is not allowed!")
-            return
-        end
-    end
-end
-
-function updateProductionData(pProductionData)
-    if onServer() == true then
-        productionData = pProductionData -- To be able to save it on Sector-unload
-    else
-        --no need to store it on the clientside. We just pass it directly to the overview-tab
-        updateOTFactoryList(pProductionData)
+        debugPrint(2,"not supposed to happen")
     end
 end
 -- only bonusType == "GeneratedEnergy"
@@ -530,7 +514,7 @@ function restore(restoreData)
         end
         bonusValues = restoreData.bonusValues or {}
         synchComplexdata(indexedComplexData)
-        synchProductionData(productionData)
+        synchProductionData(productionData, restoreData.productionValue)
         applyBoni()
     end
 end
@@ -552,6 +536,7 @@ function secure()
     end
 
     savedata["productionData"] = pProductionData
+    savedata.productionValue = productionValue
     savedata["indexedComplexData"] = pIndexedComplexData
     savedata.bonusValues = bonusValues
     return savedata

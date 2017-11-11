@@ -1288,12 +1288,10 @@ function getStock(name)
 end
 
 function getNumGoods(name)
-    local self = Entity()
-
     local good = goods[name]:good()
     if not good then return 0 end
 
-    return self:getCargoAmount(good)
+    return Entity():getCargoAmount(name)
 end
 
 function getMaxGoods(goodName)
