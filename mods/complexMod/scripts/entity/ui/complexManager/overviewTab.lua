@@ -6,7 +6,7 @@ CMSCRIPT = "mods/complexMod/scripts/entity/complexManager.lua"
 VERSION = "[0.89] "
 MOD = "[CPX3]"
 
-DEBUGLEVEL = 2              -- is overwritten by DEBUGLEVEL in complexManager.lua 
+DEBUGLEVEL = 2              -- is overwritten by DEBUGLEVEL in complexManager.lua
 --UI
 local factoryList
 local lastKnownSelected
@@ -35,52 +35,53 @@ end
 function createOverviewUI(tabWindow)
     windowContainer = tabWindow:createContainer(Rect(vec2(0, 0), tabWindow.size))
     local vsplit = UIVerticalSplitter(Rect(vec2(0, 0), windowContainer.size), 10, 10, 0.25)
-    
+
     local left, right = vsplit.left, vsplit.right
     windowContainer:createFrame(left)
     --windowContainer:createFrame(right)
-    
+
     --left
     local hsplit = UIHorizontalSplitter(left, 10, 10, 0.5)
     hsplit.bottomSize = 40
-    
+
     factoryList = windowContainer:createListBox(hsplit.top)
     factoryList.visible = true
     factoryList.fontSize = 15
     factoryList:addEntry("Complex Overview")
-    factoryList:setEntry(0, "Complex Overview", false, false, ColorRGB(0.9,0.5,0.0)) 
-    
+    factoryList:setEntry(0, "Complex Overview", false, false, ColorRGB(0.9,0.5,0.0))
+
     local vmsplit = UIVerticalMultiSplitter(hsplit.bottom, 5, 3, 3)
-    
+
     moveUpButton = windowContainer:createButton(vmsplit:partition(1), "↑", "onMoveUpPressed")
     moveUpButton.active = false
     moveDownButton = windowContainer:createButton(vmsplit:partition(2), "↓", "onMoveDownPressed")
     moveDownButton.active = false
-    
+
     --right
     local hsplit = UIHorizontalSplitter(right, 0, 1, 0.05)
-      
+
     nametag = windowContainer:createLabel(vec2(), "Complex Overview", 20)
     UIOrganizer(hsplit.top):placeElementCenter(nametag)
-    
+
     scrollFrame = windowContainer:createScrollFrame(hsplit.bottom)
     scrollFrame.scrollSpeed = 25
     scrollFrame.paddingBottom = 10
-    
+
     split = UIVerticalSplitter(hsplit.bottom, 10, 10, 0.5)
-    
+
     --windowContainer:createFrame(split.left)
     --windowContainer:createFrame(split.right)
-    
+
     maxEnergyLabel = scrollFrame:createLabel(vec2(), "", 18)
     maxEnergyLabel.visible = false
-    factorySizeSelector = scrollFrame:createComboBox(Rect(), "onfactorySizeSelected") 
+    factorySizeSelector = scrollFrame:createComboBox(Rect(), "onfactorySizeSelected")
     factorySizeSelector.visible = false
+
 end
 
 function updateOT(timestep)
     if factoryList == nil then return end
-    
+
     if factoryList.selected == -1 and factoryList.rows > 0 then
             factoryList:select(0)
     end
@@ -115,10 +116,12 @@ function updateOT(timestep)
         lastKnownSelected = factoryList.selected
         updateOTListdataPanel()
     end
+
 end
 
 function updateOTFactoryList(pProductionData)
-    if pProductionData ~= nil then 
+    --print("Data", Entity():getPlan():getStats().productionCapacity)
+    if pProductionData ~= nil then
         productionData = pProductionData
     else
         productionData = productionData or {}
@@ -129,15 +132,14 @@ function updateOTFactoryList(pProductionData)
     factoryList:addEntry("Complex Overview")
     factoryList:setEntry(0, "Complex Overview", false, false, ColorRGB(0.9,0.5,0.0))
     for index, data in pairs(indexedComplexData) do
-        --factoryList:addEntry(data.name.."   "..data.factoryBlockId) -- TODO remove blockID
         factoryList:addEntry(data.name)
         debugPrint(3, "new Productiondata", nil, factoryList.size-1,data.name)
     end
-    
+
     for index,data in pairs(indexedComplexData) do
         if index < factoryList.rows then
             local title = factoryList:getEntry(index)--data.name
-            if productionData[index] == nil then            
+            if productionData[index] == nil then
                 factoryList:setEntry(index, title, false, false, ColorRGB(0.8,0.0,0.0))
             else
                 factoryList:setEntry(index, title, false, false, ColorRGB(0.0,0.8,0.0))
@@ -147,7 +149,7 @@ function updateOTFactoryList(pProductionData)
         end
     end
 
-    if lastKnownSelected == nil then 
+    if lastKnownSelected == nil then
         factoryList:select(0)
         lastKnownSelected = 0
         return
@@ -172,12 +174,12 @@ function updateOTListdataPanel()
         uiItem.visible = false
         uiItem = nil
     end
-    
+
     if selectedIndex == 0 then                                          --whole Complex
         local x,y = 5,15
         factorySizeSelector.visible = false
-        maxEnergyLabel.visible = false 
-        
+        maxEnergyLabel.visible = false
+
         nametag.caption = "Complex Overview"
         local productions, consumption = {}, {}
         for index, data in pairs(indexedComplexData) do
@@ -214,7 +216,7 @@ function updateOTListdataPanel()
         end
         for name,amount in spairs(consumption) do
             nameT, amountT = name, amount
-            
+
             local pUI = scrollFrame:createLabel(vec2(x, y), "", 14)
 			local productionRatio = "No production!"
 			if productions[name] and productions[name] > 0 then
@@ -259,9 +261,9 @@ function updateOTListdataPanel()
         local name = data.name
         local size = data.size or 2
         local lblSize = scrollFrame.size.x/2 - 50
-        
+
         nametag.caption = name
-        
+
         if next(production.ingredients) then
             local pUI = scrollFrame:createLabel(vec2(x,y), "Consumption", 18)
             pUI.size = vec2(lblSize,pUI.size.y)
@@ -303,24 +305,24 @@ function updateOTListdataPanel()
             table.insert(uiTrashLiast, pUI)
             y = y + 25
         end
-        
-        
+
+
         local x,y = scrollFrame.size.x/2 -10, 15
-        
+
         maxEnergyLabel.visible = false
         maxEnergyLabel = nil
 
         local eSys = EnergySystem()
-        debugPrint(4,"Energy", nil, toReadableValue(eSys.energy), 
-        toReadableValue(eSys.capacity), 
-        toReadableValue(eSys.productionRate), 
-        toReadableValue(eSys.consumableEnergy), 
-        toReadableValue(eSys.requiredEnergy), 
-        toReadableValue(eSys.rechargeRate), 
+        debugPrint(4,"Energy", nil, toReadableValue(eSys.energy),
+        toReadableValue(eSys.capacity),
+        toReadableValue(eSys.productionRate),
+        toReadableValue(eSys.consumableEnergy),
+        toReadableValue(eSys.requiredEnergy),
+        toReadableValue(eSys.rechargeRate),
         toReadableValue(eSys.superflousEnergy))
         local freeEnergy = eSys.productionRate - eSys.requiredEnergy
         local capText = tostring(toReadableValue(freeEnergy).. "W Free")
-        if freeEnergy < 0 then 
+        if freeEnergy < 0 then
             maxEnergyLabel = scrollFrame:createLabel(vec2(x,y), "Not enough Energy", 18)
             maxEnergyLabel.size = vec2(lblSize,maxEnergyLabel.size.y)
             maxEnergyLabel.color = ColorRGB(0.5, 0.0, 0.0)
@@ -331,22 +333,22 @@ function updateOTListdataPanel()
         end
         maxEnergyLabel.visible = true
         y = y + 35
-        
+
         factorySizeSelector.visible = false
         factorySizeSelector:clear()
-        --factorySizeSelector = scrollFrame:createComboBox(Rect(vec2(x,y), vec2(x+split.right.size.x, y+30)), "onfactorySizeSelected")   
+        --factorySizeSelector = scrollFrame:createComboBox(Rect(vec2(x,y), vec2(x+split.right.size.x, y+30)), "onfactorySizeSelected")
         factorySizeSelector.upper = vec2(maxEnergyLabel.upper.x, maxEnergyLabel.lower.y + 30 + 35)
         factorySizeSelector.lower = vec2(maxEnergyLabel.lower.x, maxEnergyLabel.lower.y + 35)
         --factorySizeSelector.center = vec2(x,y)
         --factorySizeSelector.rect = Rect(vec2(x,y), vec2(x+split.right.size.x, y+30))
         factorySizeSelector.visible = true
         y = y + 50
-        
+
         local pUI = scrollFrame:createLabel(vec2(x, y), "Energy required for Factory size:", 16)
         pUI.size = vec2(lblSize,pUI.size.y)
         table.insert(uiTrashLiast, pUI)
         y = y + 30
-        local comboIndex = 0 
+        local comboIndex = 0
         for i = 2,10 do
             local fabECost, currentFabECost = getEnergycostForFactory(production, i), getEnergycostForFactory(production, size)
             local value, suffix = getReadableValue(math.abs( fabECost - currentFabECost))
@@ -380,10 +382,10 @@ function updateOTListdataPanel()
                     pUI.caption = "Current Class"
                     pUI.color = ColorRGB(0.0, 0.4, 0.0)
                 end
-                
+
             end
             y = y + 25
-            
+
             table.insert(uiTrashLiast, pUI)
         end
         y = y + 5
@@ -408,16 +410,16 @@ function onMoveUpPressed()
     local selectedFactoryData, aboveFactoryData = indexedComplexData[selected], indexedComplexData[selected - 1]
     factoryList:setEntry(selected - 1, unpack(selectedEntry))
     factoryList:setEntry(selected, unpack(aboveEntry))
-    
-    
+
+
     indexedComplexData[selected - 1] = selectedFactoryData
     indexedComplexData[selected] = aboveFactoryData
-    
+
     local selProdData, aboveProdData = productionData[selected], productionData[selected - 1]
     productionData[selected] = aboveProdData
     productionData[selected - 1] = selProdData
-    
-    
+
+
     factoryList:select(selected - 1)
     lastKnownSelected = lastKnownSelected - 1
     local status, data = Entity():invokeFunction(CMSCRIPT,"synchComplexdata",indexedComplexData)
@@ -433,21 +435,21 @@ function onMoveDownPressed()
     local selectedFactoryData, belowFactoryData = indexedComplexData[selected], indexedComplexData[selected + 1]
     factoryList:setEntry(selected + 1, unpack(selectedEntry))
     factoryList:setEntry(selected, unpack(belowEntry))
-    
+
     indexedComplexData[selected + 1] = selectedFactoryData
     indexedComplexData[selected] = belowFactoryData
-    
+
     local selProdData, belowProdData = productionData[selected], productionData[selected + 1]
     productionData[selected] = belowProdData
     productionData[selected + 1] = selProdData
-    
+
     factoryList:select(selected + 1)
     lastKnownSelected = lastKnownSelected + 1
     local status, data = Entity():invokeFunction(CMSCRIPT,"synchComplexdata", indexedComplexData)
 end
 
 function onfactorySizeSelected()
-    
+
 end
 
 function onSizeSet()
@@ -455,10 +457,10 @@ function onSizeSet()
     if factoryList == nil then return end
     if factoryList.selected == nil then return end
     if factoryList.selected < 1 then return end
-    
+
     --check for Energy
     local index = factoryList.selected
-    
+
     local data = indexedComplexData[index]
     local size = upgradeMap[factorySizeSelector.selectedIndex] or 0
     debugPrint(4, "pre size ", nil, factorySizeSelector.selectedIndex, size)
@@ -467,7 +469,7 @@ function onSizeSet()
         debugPrint(0, "Energyconsumption too big:", nil, energyConsumption - EnergySystem().productionRate - EnergySystem().requiredEnergy)
         return
     end
-    
+
     data.size = size
     if size == 2 then
         local status = Entity():invokeFunction(CMSCRIPT, "removeBonus", data.factoryBlockId)
@@ -481,8 +483,8 @@ function onSizeSet()
     name = string.gsub(name, "${size}", getFactoryClassBySize(data.size))
     data.name = name
     indexedComplexData[index] = data
-    
-    
+
+
     local status, data = Entity():invokeFunction(CMSCRIPT, "synchSingleComplexdata", index,data)
     updateOTFactoryList()
     updateOTListdataPanel()
@@ -493,7 +495,7 @@ function tRN(number)
     if number == nil then return 0 end
     number = math.floor(number*100)/100     --keep last 2 digit
     local formatted = number
-    while true do  
+    while true do
         formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
         if (k==0) then
             break
@@ -524,7 +526,7 @@ function getEnergycostForFactory(production, size)
     if size <=2 then return 0 end
     local factorycost = getFactoryCost(production)
     local base = 2500
-    
+
     local energyConsumption = math.floor(factorycost * base * (1 + 1/(11 - size)) * (size-1))
     return energyConsumption
 end

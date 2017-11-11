@@ -9,7 +9,7 @@ require ("faction")
 VERSION = "[0.89] "
 MOD = "[CPX3]"
 
-DEBUGLEVEL = 2              -- is overwritten by DEBUGLEVEL in complexFactory.lua 
+DEBUGLEVEL = 2              -- is overwritten by DEBUGLEVEL in complexFactory.lua
 
 CMSCRIPT = "mods/complexMod/scripts/entity/complexManager.lua"
 buyPriceFactor = 1
@@ -110,22 +110,22 @@ function restoreTradingGoods(data)
     policies = data.policies
     assignedCargoList = data.assignedCargoList or {}
     numAssignedCargo = data.numAssignedCargo or 0
-    
+
     debugPrint(3, "assignedCargoList", assignedCargoList, numAssignedCargo, assignedCargo)
-    
+
     numAssignedCargo = 0
     for _,amount in pairs(assignedCargoList) do
         numAssignedCargo = numAssignedCargo + 1
         assignedCargo = assignedCargo + amount
     end
-    
+
     numBought = 0
     boughtGoods = {}
     for name, pair in pairs(data.boughtGoods) do
         local index, goodTable = next(pair)
         numBought = numBought + 1
         boughtGoods[name] = {[numBought] = tableToGood(goodTable)}
-        
+
     end
     debugPrint(3, "boughtGoods", boughtGoods)
     numSold = 0
@@ -134,31 +134,31 @@ function restoreTradingGoods(data)
         local index, goodTable = next(pair)
         numSold = numSold + 1
         soldGoods[name] = {[numSold] = tableToGood(goodTable)}
-        
+
     end
     debugPrint(3, "SoldGoods", soldGoods)
-    numIntermediate = 0 
+    numIntermediate = 0
     intermediateGoods = {}
     for name, pair in pairs(data.intermediateGoods) do
         local index, goodTable = next(pair)
         numIntermediate = numIntermediate + 1
         intermediateGoods[name] = {[numIntermediate] = tableToGood(goodTable)}
-        
+
     end
     debugPrint(3, "intermediateGoods", intermediateGoods)
-    
+
 end
 
 function secureTradingGoods()
     debugPrint(3, "securing Tradingdata")
-    
+
     local data = {}
     data.buyPriceFactor = buyPriceFactor
     data.sellPriceFactor = sellPriceFactor
     data.policies = policies
     data.assignedCargoList = assignedCargoList
     data.numAssignedCargo = numAssignedCargo
-    
+
     data.boughtGoods = {}
     for name, pair in pairs(boughtGoods) do
         local index, good = next(pair)
@@ -172,21 +172,21 @@ function secureTradingGoods()
         debugPrint(3, "soldGoods", nil, index, good.name)
         data.soldGoods[name] = {[index] = goodToTable(good)}
     end
-    
+
     data.intermediateGoods = {}
     for name, pair in pairs(intermediateGoods) do
         local index, good = next(pair)
         debugPrint(3, "intermediateGoods", nil, index, good.name)
         data.intermediateGoods[name] = {[index] = goodToTable(good)}
     end
-    
+
     return data
 end
 
 function synchTradingLists(boughtGoodsIn, soldGoodsIn, intermediateGoodsIn, calledOnServer, isRequest)
     debugPrint(4,"synchTradingLists input", {boughtGoodsIn, soldGoodsIn, intermediateGoodsIn}, calledOnServer, isRequest, callingPlayer)
     if isRequest == true then
-        if onServer() == true then 
+        if onServer() == true then
             local sectorPlayers = Sector():getPlayers() or {}
             debugPrint(4,"PlayerList", sectorPlayers)
             --for _,player in pairs(sectorPlayers) do
@@ -200,7 +200,7 @@ function synchTradingLists(boughtGoodsIn, soldGoodsIn, intermediateGoodsIn, call
         end
         return
     end
-    
+
     if onServer() == true then
         if calledOnServer == false then
             if checkEntityInteractionPermissions(Entity(), AlliancePrivilege.ManageStations) then
@@ -214,7 +214,7 @@ function synchTradingLists(boughtGoodsIn, soldGoodsIn, intermediateGoodsIn, call
     else
         if calledOnServer == nil then
             invokeServerFunction("synchTradingLists", boughtGoodsIn, soldGoodsIn, intermediateGoodsIn, false)
-        else 
+        else
             debugPrint(4, "synchTradingLists ", nil, calledOnServer, isRequest)
         end
         updateTradingLists(boughtGoodsIn, soldGoodsIn, intermediateGoodsIn)
@@ -233,18 +233,18 @@ function updateTradingLists(boughtGoodsIn, soldGoodsIn, intermediateGoodsIn)
             boughtGoods[good.name] = {[numBought] = good}
         end
     end
-    
+
     if soldGoodsIn ~= nil then
         numSold = 0
         soldGoods = {}
-        for _, g in pairs(soldGoodsIn) do   
+        for _, g in pairs(soldGoodsIn) do
             local index, good = next(g)
             if type(good) == "table" then good = tableToGood(good) end
             numSold = numSold + 1
-            soldGoods[good.name] = {[numSold] = good} 
+            soldGoods[good.name] = {[numSold] = good}
         end
     end
-    
+
     if intermediateGoodsIn ~= nil then
         numIntermediate = 0
         intermediateGoods = {}
@@ -264,7 +264,7 @@ end
 function addGoodToBoughtGoods(goodIn)
     local good, index = getGoodByName(goodIn.name)
     if good ~= nil then return false end
-    if boughtGoods[goodIn.name] == nil then 
+    if boughtGoods[goodIn.name] == nil then
         numBought = numBought + 1
         boughtGoods[goodIn.name] = {[numBought] = goodIn}
         return true
@@ -276,7 +276,7 @@ end
 function addGoodToSoldGoods(goodIn)
     local good, index = getGoodByName(goodIn.name)
     if good ~= nil then return false end
-    if soldGoods[goodIn.name] == nil then 
+    if soldGoods[goodIn.name] == nil then
         numSold = numSold + 1
         soldGoods[goodIn.name] = {[numSold] = goodIn}
         return true
@@ -288,7 +288,7 @@ end
 function addGoodToIntermediateGoods(goodIn)
     local good, index = getGoodByName(goodIn.name)
     if good ~= nil then return false end
-    if intermediateGoods[goodIn.name] == nil then 
+    if intermediateGoods[goodIn.name] == nil then
         numIntermediate = numIntermediate + 1
         intermediateGoods[goodIn.name] = {[numIntermediate] = goodIn}
         return true
@@ -299,10 +299,10 @@ end
 
 function removeGoodFromAllLists(goodName)
     --if onServer() then broadcastInvokeClientFunction("removeGoodFromAllLists", goodName) end
-    if assignedCargoList[goodName] ~= nil then 
+    if assignedCargoList[goodName] ~= nil then
         unassignCargo(goodName)
     end
-    if boughtGoods[goodName] ~= nil then 
+    if boughtGoods[goodName] ~= nil then
         local index = next(boughtGoods[goodName])
         boughtGoods[goodName] = nil
         numBought = numBought - 1
@@ -313,7 +313,7 @@ function removeGoodFromAllLists(goodName)
             end
         end
     end
-    if soldGoods[goodName] ~= nil then 
+    if soldGoods[goodName] ~= nil then
         local index = next(soldGoods[goodName])
         soldGoods[goodName] =  nil
         numSold = numSold - 1
@@ -335,6 +335,14 @@ function removeGoodFromAllLists(goodName)
             end
         end
     end
+end
+
+function getBuysFromOthers()
+    return next(boughtGoods) ~= nil
+end
+
+function getSellsToOthers()
+    return next(soldGoods) ~= nil
 end
 
 function getAllGoods()
@@ -362,7 +370,7 @@ function requestGoods()
     numSold = 0
     numIntermediate = 0
     numAssignedCargo = 0
-    
+
     assignedCargo = 0
 
     invokeServerFunction("sendGoods", Player().index)
@@ -384,8 +392,8 @@ function sendGoods(playerIndex)
     data.assignedCargoList = assignedCargoList
     data.assignedCargo = assignedCargo
     data.numAssignedCargo = numAssignedCargo
-    
-    
+
+
     invokeClientFunction(player, "receiveGoods", data)
 end
 
@@ -393,27 +401,27 @@ function receiveGoods(data_in)
     buyPriceFactor = data_in.buyPriceFactor
     sellPriceFactor = data_in.sellPriceFactor
     assignedCargo = data_in.assignedCargo
-    
+
     policies = data_in.policies
 
     boughtGoods = data_in.boughtGoods
     soldGoods = data_in.soldGoods
     intermediateGoods = data_in.intermediateGoods
     assignedCargoList = data_in.assignedCargoList
-    
+
     numBought = data_in.numBought
     numSold = data_in.numSold
     numIntermediate = data_in.numIntermediate
     numAssignedCargo = data_in.numAssignedCargo
-    
+
     for _,line in pairs(boughtLines) do
         line:hide()
     end
-    
+
     for _,line in pairs(soldLines) do
         line:hide()
     end
-    
+
     debugPrint(3, "boughtGoodsc", boughtGoods)
     for name, pair in pairs(boughtGoods) do
         local index , good = next(pair)
@@ -436,7 +444,7 @@ function updateBoughtGoodGui(index, good, price)
     local amount = getNumGoods(good.name)
 
     line = boughtLines[index]
-    if line == nil then 
+    if line == nil then
         debugPrint(4, "creating new Line-bought", nil, good.name, index)
         genericLine(nil, scrollFrameSold, index, good.name)
         line = boughtLines[index]
@@ -450,7 +458,7 @@ function updateBoughtGoodGui(index, good, price)
     line.size.caption = round(good.size, 2)
     line.icon.picture = good.icon
     line.goodName = good.name
-    
+
     local ownCargo = 0
     local ship = Entity(Player().craftIndex)
     if ship then
@@ -470,7 +478,7 @@ function updateSoldGoodGui(index, good, price)
     local amount = getNumGoods(good.name)
 
     line = soldLines[index]
-    if line == nil then 
+    if line == nil then
         debugPrint(4, "creating new Line-sold", nil, good.name, index)
         genericLine(scrollFrameBought, nil, index, good.name)
         line = soldLines[index]
@@ -478,7 +486,7 @@ function updateSoldGoodGui(index, good, price)
             debugPrint(0, "creation of new line-sold failed:", soldLines, good.name, index)
         end
     end
-    
+
     line.name.caption = good.displayName
     line.stock.caption = amount .. "/" .. maxAmount
     line.price.caption = createMonetaryString(price)
@@ -539,7 +547,7 @@ function buildGui(window, guiType)
     local scrollFrame = window:createScrollFrame(Rect(vec2(0,30), vec2(window.size.x, window.size.y-30)))
     scrollFrame.scrollSpeed = 35
     scrollFrame.paddingBottom = 18
-    
+
     local nameX = 10
     local stockX = 310
     local volX = 480
@@ -571,15 +579,15 @@ function genericLine(pScrollFrameBought, pScrollFrameSold, index, goodName)
     if onServer() then debugPrint(0, "Error in generic Line: onServer") end
     local scrollFrame, line
     local guiType
-    if pScrollFrameBought ~= nil then 
+    if pScrollFrameBought ~= nil then
         guiType = 1
-        scrollFrame = pScrollFrameBought 
+        scrollFrame = pScrollFrameBought
     end
     if pScrollFrameSold ~= nil then
         guiType = 0
-        scrollFrame = pScrollFrameSold 
+        scrollFrame = pScrollFrameSold
     end
-    
+
     local buttonCaption = ""
     local buttonCallback = ""
     local textCallback = ""
@@ -593,7 +601,7 @@ function genericLine(pScrollFrameBought, pScrollFrameSold, index, goodName)
         buttonCallback = "onSellButtonPressed"
         textCallback = "onSellTextEntered"
     end
-    
+
     local nameX = 10
     local pictureX = 270
     local stockX = 310
@@ -604,28 +612,28 @@ function genericLine(pScrollFrameBought, pScrollFrameSold, index, goodName)
     local buttonX = 790
 
     local buttonSize = 70
-    
+
     local y = 5 + 35*(index-1)
-    
+
     --create Line-objects
     local yText = y + 6
 
     local frame = scrollFrame:createFrame(Rect(5, y, textBoxX - 10, 30 + y))
-    
+
     local nameLabel = scrollFrame:createLabel(vec2(nameX, yText), "", 15)
     nameLabel.size = vec2(nameLabel.size.x,35)
     nameLabel.caption = goodName
     local icon = scrollFrame:createPicture(Rect(pictureX, yText - 5, 29 + pictureX, 29 + yText - 5), "")
     local stockLabel = scrollFrame:createLabel(vec2(stockX, yText), "", 15)
     stockLabel.size = vec2(stockLabel.size.x,35)
-    
+
     local sizeLabel = scrollFrame:createLabel(vec2(volX, yText), "", 15)
     sizeLabel.size = vec2(100,35)
     local priceLabel = scrollFrame:createLabel(vec2(priceX, yText), "", 15)
     priceLabel.size = vec2(100,35)
     local youLabel = scrollFrame:createLabel(vec2(youX, yText), "", 15)
     youLabel.size = vec2(100,35)
-    
+
     local numberTextBox = scrollFrame:createTextBox(Rect(textBoxX, yText - 6, 60 + textBoxX, 30 + yText - 6), textCallback)
     local button = scrollFrame:createButton(Rect(buttonX, yText - 6, scrollFrame.size.x-25, 30 + yText - 6), buttonCaption, buttonCallback)
 
@@ -676,7 +684,7 @@ function onBuyTextEntered(textBox)
         enteredNumber = 0
     end
     local newNumber = enteredNumber
-    
+
     local goodIndex = nil
     for i, line in pairs(soldLines) do
         if line.number.index == textBox.index then
@@ -684,13 +692,13 @@ function onBuyTextEntered(textBox)
             break
         end
     end
-    local line = soldLines[goodIndex] 
+    local line = soldLines[goodIndex]
     if line == nil then debugPrint(1,"Line doesn't match to TextBox: ", soldLines, goodIndex) return end
 
     local goodName = line.goodName
     if goodName == nil then debugPrint(1, "goodID not found: ", nil, goodIndex)return end
     if soldGoods[goodName] == nil then debugPrint(1, goodName.." not sold") return end
-    
+
     local _, good = next(soldGoods[goodName])
     if good == nil then
         debugPrint(1, "good with Name " .. goodName .. " isn't sold.")
@@ -753,7 +761,7 @@ function onSellTextEntered(textBox)
     end
 
     local newNumber = enteredNumber
-    
+
     local goodIndex = nil
     for i, line in pairs(boughtLines) do
         if line.number.index == textBox.index then
@@ -761,13 +769,13 @@ function onSellTextEntered(textBox)
             break
         end
     end
-    local line = boughtLines[goodIndex] 
+    local line = boughtLines[goodIndex]
     if line == nil then debugPrint(1, "Line doesn't match to TextBox: ", nil, goodIndex) return end
-    
+
     local goodName = line.goodName
     if goodName == nil then debugPrint(1, "goodID not found: ", nil, goodIndex)return end
     if boughtGoods[goodName] == nil then debugPrint(1, goodName.." not bought") return end
-    
+
     local _, good = next(boughtGoods[goodName])
     if good == nil then
         debugPrint(1, "good with index " .. goodName .. " isn't bought")
@@ -811,7 +819,7 @@ end
 function onBuyButtonPressed(button)
 
     local shipIndex = Player().craftIndex
-    
+
     local goodIndex = nil
     for i, line in ipairs(soldLines) do
         if line.button.index == button.index then
@@ -819,13 +827,13 @@ function onBuyButtonPressed(button)
         end
     end
     local line = soldLines[goodIndex]
-    
+
     if line == nil then debugPrint(1, "Line doesn't match to Button: ", nil, goodIndex) return end
     local goodName = line.goodName
 
     if goodName == nil then debugPrint(1, "goodID not found: ", nil, goodIndex)return end
     if soldGoods[goodName] == nil then debugPrint(1, goodName.." not bought") return end
-    
+
     local _, good = next(soldGoods[goodName])
     if good == nil then
         debugPrint(1, "internal error, good " .. goodName .. " of buy button not found.", nil, goodIndex)
@@ -854,13 +862,13 @@ function onSellButtonPressed(button)
         end
     end
     local line = boughtLines[goodIndex]
-    
+
     if line == nil then debugPrint(1, "Line doesn't match to Button: ", nil, goodIndex) return end
     local goodName = line.goodName
 
     if goodName == nil then debugPrint(1, "goodID not found: ", nil, goodIndex)return end
     if boughtGoods[goodName] == nil then debugPrint(1, goodName.." not bought") return end
-    
+
     local _, good = next(boughtGoods[goodName])
     if good == nil then
         debugPrint(1, "internal error, good " .. goodName .. " of sell button not found.", nil, goodIndex)
@@ -889,17 +897,34 @@ function sendError(faction, msg, ...)
     end
 end
 
+function transferMoney(owner, from, to, amount, fromDescription, toDescription)
+    if from.index == to.index then return end
+
+    local ownerMoney = amount
+
+    if owner.index == from.index then
+        from:pay(fromDescription or "", ownerMoney)
+        to:receive(toDescription or "", amount)
+    elseif owner.index == to.index then
+        from:pay(fromDescription or "", amount)
+        to:receive(toDescription or "", ownerMoney)
+    else
+        from:pay(fromDescription or "", amount)
+        to:receive(toDescription or "", amount)
+    end
+end
+
 function buyFromShip(shipIndex, goodName, amount, noDockCheck)
     local ship = Entity(shipIndex)
     local shipFaction = Faction(ship.factionIndex)
-    
+
     -- check if the good can be bought
     if boughtGoods[goodName] == nil then
         sendError(shipFaction, "%s isn't bought."%_t, goodName)
         return
     end
 
-    
+
     if ship.freeCargoSpace == nil then
         sendError(shipFaction, "Your ship has no cargo bay!"%_t)
         return
@@ -1004,7 +1029,7 @@ function sellToShip(shipIndex, goodName, amount, noDockCheck)
         sendError(shipFaction, "%s isn't sold."%_t, goodName)
         return
     end
-    
+
     if ship.freeCargoSpace == nil then
         sendError(shipFaction, "Your ship has no cargo bay!"%_t)
         return
@@ -1079,35 +1104,108 @@ function sellToShip(shipIndex, goodName, amount, noDockCheck)
 
 end
 
+function buyGoods(good, amount, otherFactionIndex, monetaryTransactionOnly)
+
+    -- check if the good is even bought by the station
+    if not getBoughtGoodByName(good.name) == nil then return 1 end
+
+    local ok = isBoughtBySelf(good)
+    if not ok then return 4 end
+
+    local stationFaction = Faction()
+    local otherFaction = Faction(otherFactionIndex)
+
+    -- make sure the transaction can not sell more than the station can have in stock
+    local buyable = getMaxStock(good.name) - getNumGoods(good.name);
+    amount = math.min(buyable, amount)
+    if amount <= 0 then return 2 end
+
+    -- begin transaction
+    -- calculate price. if the seller is the owner of the station, the price is 0
+    local price = getBuyPrice(good.name, otherFactionIndex) * amount
+
+    local canPay, msg, args = stationFaction:canPay(price);
+    if not canPay then return 3 end
+
+    local x, y = Sector():getCoordinates()
+    local fromDescription = Format("\\s(%1%:%2%) %3% bought %4% %5% for %6% credits."%_T, x, y, Entity().title, math.floor(amount), good.translatablePlural, createMonetaryString(price))
+    local toDescription = Format("\\s(%1%:%2%): sold %3% %4% for %5% credits."%_T, x, y, math.floor(amount), good.translatablePlural, createMonetaryString(price))
+
+    -- give money to other faction
+    transferMoney(stationFaction, stationFaction, otherFaction, price, fromDescription, toDescription)
+
+    if not monetaryTransactionOnly then
+        -- add goods to station
+        increaseGoods(good.name, amount)
+    end
+
+    local relationsChange = GetRelationChangeFromMoney(price)
+    Galaxy():changeFactionRelations(otherFaction, stationFaction, relationsChange)
+
+    return 0
+end
+
+-- convenience function for selling goods to another faction. They're not added to another ship, they just disappear
+function sellGoods(good, amount, otherFactionIndex, monetaryTransactionOnly)
+
+    local stationFaction = Faction()
+    local otherFaction = Faction(otherFactionIndex)
+
+    local sellable = getNumGoods(good.name)
+    amount = math.min(sellable, amount)
+    if amount <= 0 then return 1 end
+
+    local price = getSellPrice(good.name, otherFactionIndex) * amount
+    local canPay = otherFaction:canPay(price);
+    if not canPay then return 2 end
+
+    local x, y = Sector():getCoordinates()
+    local toDescription = Format("\\s(%1%:%2%) %3% sold %4% %5% for %6% credits."%_T, x, y, Entity().title, math.floor(amount), good.translatablePlural, createMonetaryString(price))
+    local fromDescription = Format("\\s(%1%:%2%): Bought %3% %4% for %5% credits."%_T, x, y, math.floor(amount), good.translatablePlural, createMonetaryString(price))
+
+    -- make other faction pay
+    transferMoney(stationFaction, otherFaction, stationFaction, price, fromDescription, toDescription)
+
+    if not monetaryTransactionOnly then
+        -- remove goods from station
+        decreaseGoods(good.name, amount)
+    end
+
+    local relationsChange = GetRelationChangeFromMoney(price)
+    Galaxy():changeFactionRelations(otherFaction, stationFaction, relationsChange)
+
+    return 0
+end
+
 function increaseGoods(goodName, delta)
     local boughtHasBeenIncreased, soldHasBeenIncreased, intermediateHasBeenIncreased = false, false, false
-    
+
     local self = Entity()
-    
+
     local good, index = getBoughtGoodByName(goodName)
-    if good ~= nil then 
+    if good ~= nil then
         -- increase
         local current = self:getCargoAmount(good)
         delta = math.min(delta, getMaxStock(good.name) - current)
-        delta = math.max(delta, 0)                              
+        delta = math.max(delta, 0)
 
         self:addCargo(good, delta)
         broadcastInvokeClientFunction("updateBoughtGoodAmount", goodName)
         boughtHasBeenIncreased = true
     end
-    
+
     local good, index = getSoldGoodByName(goodName)
-    if good ~= nil then 
+    if good ~= nil then
         -- increase
         local current = self:getCargoAmount(good)
         delta = math.min(delta, getMaxStock(good.name) - current)
         delta = math.max(delta, 0)
-        
+
         self:addCargo(good, delta)
         broadcastInvokeClientFunction("updateSoldGoodAmount", goodName)
         soldHasBeenIncreased = true
     end
-    
+
     local good, index = getIntermediateGoodByName(goodName)
     if good ~= nil then
         -- increase
@@ -1118,24 +1216,24 @@ function increaseGoods(goodName, delta)
         self:addCargo(good, delta)
         intermediateHasBeenIncreased = true
     end
-    
+
 end
 
 function decreaseGoods(goodName, amount)
     local boughtHasBeenDecreased, soldHasBeenDecreased, intermediateHasBeenDecreased = false, false, false
-    
+
     local self = Entity()
-    
+
     local good, index = getBoughtGoodByName(goodName)
-    if good ~= nil then 
+    if good ~= nil then
         --decrease
         self:removeCargo(good, amount)
         broadcastInvokeClientFunction("updateBoughtGoodAmount", goodName)
         boughtHasBeenDecreased = true
     end
-    
+
     local good, index = getSoldGoodByName(goodName)
-    if good ~= nil then 
+    if good ~= nil then
         --decrease
         self:removeCargo(good, amount)
         broadcastInvokeClientFunction("updateSoldGoodAmount", goodName)
@@ -1148,7 +1246,7 @@ function decreaseGoods(goodName, amount)
         self:removeCargo(good, amount)
         intermediateHasBeenDecreased = true
     end
-    
+
 end
 
 function useUpBoughtGoods(timeStep)
@@ -1200,16 +1298,16 @@ end
 
 function getMaxGoods(goodName)
     local amount = 0
-    
-    local good, index = getGoodByName(goodName)  
+
+    local good, index = getGoodByName(goodName)
     if good == nil or index == nil then debugPrint(3, "not In Staion: ", nil, goodName) return end
-    
+
     return getMaxStock(goodName)
 end
 
 function getGoodSize(goodName)
     local good,_ = getGoodByName(goodName)
-    
+
     if good ~= nil then
         return good.size
     else
@@ -1230,14 +1328,14 @@ function getMaxStock(goodName)
             else
                 return assignedCargoList[goodName]
             end
-        
+
         else
             return assignedCargoList[goodName]
         end
     else
         local unassignedCargospace = self.maxCargoSpace - assignedCargo
         local numUnassignedGoods = numBought + numSold + numIntermediate - numAssignedCargo
-        
+
         if numUnassignedGoods > 0 then
             local spaceForEachUnassignedGood = unassignedCargospace / numUnassignedGoods
             return math.floor(spaceForEachUnassignedGood / goodSize)
@@ -1253,15 +1351,15 @@ function assignCargo(goodName, amount)                                          
     if onClient() then
         invokeServerFunction("assignCargo", goodName, amount)
     end
-    
+
     local good =  getGoodByName(goodName)
     if good == nil then
         debugPrint(0, "AssignGood failed to find", nil, goodName)
         return 0
     end
     local goodSize = good.size
-    
-    if amount == 0 or self.maxCargoSpace == nil then 
+
+    if amount == 0 or self.maxCargoSpace == nil then
         local ret = unassignCargo(goodName)
         if onServer() then
             debugPrint(3, "assignCargo on Server", nil, amount, ret)
@@ -1270,9 +1368,9 @@ function assignCargo(goodName, amount)                                          
         end
         return 0
     end
-    
+
     if assignedCargoList[goodName] == nil then                                              --newly created assignment
-        if assignedCargo > self.maxCargoSpace then 
+        if assignedCargo > self.maxCargoSpace then
             return 0
         else
             local maxCargoToSpare = math.min(math.floor(self.maxCargoSpace-assignedCargo), amount * goodSize)
@@ -1280,18 +1378,18 @@ function assignCargo(goodName, amount)                                          
             assignedCargo = assignedCargo + assignedCargoList[goodName] * goodSize
             numAssignedCargo = numAssignedCargo + 1
         end
-        
-    else                                                                                    --updating assignment 
+
+    else                                                                                    --updating assignment
         assignedCargo = assignedCargo - assignedCargoList[goodName] * goodSize
-        if assignedCargo > self.maxCargoSpace then 
+        if assignedCargo > self.maxCargoSpace then
             assignedCargoList[goodName] = nil
             numAssignedCargo = numAssignedCargo - 1
             return 0
-        else 
+        else
             local maxCargoToSpare = math.min(math.floor(self.maxCargoSpace-assignedCargo), amount * goodSize)
             assignedCargoList[goodName] = math.floor(math.floor(maxCargoToSpare/goodSize))
             assignedCargo = assignedCargo + assignedCargoList[goodName] * goodSize
-        end 
+        end
     end
     if onClient() then
         debugPrint(3, "assignCargo on Client", nil, assignedCargoList[goodName])
@@ -1316,7 +1414,7 @@ end
 
 function getBoughtGoodByName(goodName)
     local good, index
-    if boughtGoods[goodName] ~= nil then       
+    if boughtGoods[goodName] ~= nil then
         index, good = next(boughtGoods[goodName])
         if good == nil then debugPrint(0, "good not found in valid boughtGoods: ", nil, goodName) return end
     end
@@ -1325,7 +1423,7 @@ end
 
 function getSoldGoodByName(goodName)
     local good, index
-    if soldGoods[goodName] ~= nil then       
+    if soldGoods[goodName] ~= nil then
         index, good = next(soldGoods[goodName])
         if good == nil then debugPrint(0, "good not found in valid soldGoods: ", nil, goodName) return end
     end
@@ -1334,7 +1432,7 @@ end
 
 function getIntermediateGoodByName(goodName)
     local good, index
-    if intermediateGoods[goodName] ~= nil then       
+    if intermediateGoods[goodName] ~= nil then
         index, good = next(intermediateGoods[goodName])
         if good == nil then debugPrint(0, "good not found in valid intermediateGoods: ", nil, goodName) return end
     end
@@ -1348,24 +1446,24 @@ function getGoodByName(goodName)
 
     local pGood, pIndex = getBoughtGoodByName(goodName)
     if pGood ~= nil then
-        hasBeenCalled = true 
+        hasBeenCalled = true
         index, good = pIndex, pGood
     end
-        
+
     local pGood, pIndex = getSoldGoodByName(goodName)
     if pGood ~= nil then
         if hasBeenDecreased then debugPrint(3, goodName.." has already been called in boughtGoods")end
-        hasBeenCalled = true 
+        hasBeenCalled = true
         index, good = pIndex, pGood
     end
-    
+
     local pGood, pIndex = getIntermediateGoodByName(goodName)
     if pGood ~= nil then
         if hasBeenDecreased then debugPrint(3, goodName.." has already been called in soldGoods")end
-        hasBeenCalled = true 
+        hasBeenCalled = true
         index, good = pIndex, pGood
     end
-    
+
     return good, index  -- is switched to stay compatible with tradingoverview.lua
 end
 
@@ -1415,7 +1513,7 @@ function getSellPrice(goodName, buyingFaction)
 
     local good, _ = getSoldGoodByName(goodName)
     if good == nil then return 0 end
-    
+
     -- empty stock -> higher price
     local factor = getNumGoods(goodName) / getMaxStock(good.name) -- 0 to 1 where 1 is 'full stock'
     factor = 1 - factor -- 1 to 0 where 0 is 'full stock'
@@ -1677,7 +1775,7 @@ end
 
 function toReadableNumber(number)
     local formatted = number
-    while true do  
+    while true do
         formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
         if (k==0) then
             break

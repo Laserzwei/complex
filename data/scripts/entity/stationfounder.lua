@@ -12,11 +12,159 @@ require ("defaultscripts")
 StationFounder = {}
 
 local productionsByButton = {}
+local stationsByButton = {}
 local selectedProduction = {}
+local selectedStation
 
 local warnWindow
 local warnWindowLabel
 
+local calculateConsumerValue = function(collected)
+    local sum = 0
+
+    for _, name in pairs(collected) do
+        local good = goods[name]
+        if good then
+            sum = sum + good.price
+        end
+    end
+
+    local base = 5000000
+
+    return base + round(math.sqrt(sum * 2500) / 10) * 10000
+end
+
+local stations =
+{
+    {
+        name = "Biotope"%_t,
+        tooltip = "The population on this station buys and consumes a range of organic goods. These goods can be picked up for free by the owner of the station. Attracts NPC traders."%_t,
+        scripts = {{script = "data/scripts/entity/merchants/biotope.lua"}},
+        getPrice = function()
+            return calculateConsumerValue({"Food", "Food Bar", "Fungus", "Wood", "Glass", "Sheep", "Cattle", "Wheat", "Corn", "Rice", "Vegetable", "Water", "Coal"})
+        end
+    },
+    {
+        name = "Casino"%_t,
+        tooltip = "The population on this station buys and consumes a range of luxury goods. These goods can be picked up for free by the owner of the station. Attracts NPC traders."%_t,
+        scripts = {{script = "data/scripts/entity/merchants/casino.lua"}},
+        getPrice = function()
+            return calculateConsumerValue({"Beer", "Wine", "Liquor", "Food", "Luxury Food", "Water", "Medical Supplies"})
+        end
+    },
+    {
+        name = "Habitat"%_t,
+        tooltip = "The population on this station buys and consumes a range of common day to day goods. These goods can be picked up for free by the owner of the station. Attracts NPC traders."%_t,
+        scripts = {{script = "data/scripts/entity/merchants/habitat.lua"}},
+        getPrice = function()
+            return calculateConsumerValue({"Beer", "Wine", "Liquor", "Food", "Tea", "Luxury Food", "Spices", "Vegetable", "Fruit", "Cocoa", "Coffee", "Wood", "Meat", "Water"})
+        end
+    },
+    {
+        name = "Equipment Dock"%_t,
+        tooltip = "Buys and sells upgrades, turrets and fighters. The owner of the equipment dock gets 20% of the money of every transaction, as well as cheaper prices."%_t .. "\n\n" ..
+                  "The population on this station buys and consumes a range of technological goods. These goods can be picked up for free by the owner of the station. Attracts NPC traders."%_t,
+        scripts = {
+            {script = "data/scripts/entity/merchants/equipmentdock.lua"},
+            {script = "data/scripts/entity/merchants/turretmerchant.lua"},
+            {script = "data/scripts/entity/merchants/fightermerchant.lua"},
+            {script = "data/scripts/entity/merchants/consumer.lua", args = {EquipmentDockConsumerArguments()}},
+        },
+        getPrice = function()
+            return 25000000 +
+                calculateConsumerValue({EquipmentDockConsumerArguments()})
+        end
+    },
+    {
+        name = "Fighter Factory"%_t,
+        tooltip = "Produces custom fighters. The owner of the factory gets 20% of the money of every transaction, as well as cheaper prices."%_t,
+        scripts = {{script = "data/scripts/entity/merchants/fighterfactory.lua"}},
+        price = 35000000
+    },
+    -- {
+    --     name = "Headquarters"%_t,
+    --     tooltip = "Can be used as headquarters for an alliance. [Not yet implemented.]"%_t,
+    --     scripts = {{script = "data/scripts/entity/merchants/headquarters.lua"}},
+    --     price = 5000000
+    -- },
+    {
+        name = "Research Station"%_t,
+        tooltip = "Upgrades and turrets can be researched here to get better upgrades and turrets."%_t .. "\n\n" ..
+                  "The population of this station buys and consumes a range of science goods. These goods can be picked up for free by the owner of the station. Attracts NPC traders."%_t,
+        scripts = {
+            {script = "data/scripts/entity/merchants/researchstation.lua"},
+            {script = "data/scripts/entity/merchants/consumer.lua", args = {ResearchStationConsumerArguments()}},
+        },
+        getPrice = function()
+            return 5000000 +
+                    calculateConsumerValue({ResearchStationConsumerArguments()})
+        end
+    },
+    {
+        name = "Resource Depot"%_t,
+        tooltip = "Sells and buys resources such as Iron or Titanium and the like. The owner gets 20% of every transaction, as well as cheaper prices."%_t,
+        scripts = {{script = "data/scripts/entity/merchants/resourcetrader.lua"}},
+        price = 15000000
+    },
+    {
+        name = "Smuggler's Market"%_t,
+        tooltip = "Sells and buys stolen and other illegal goods. The owner gets 20% of every transaction, as well as cheaper prices."%_t,
+        scripts = {{script = "data/scripts/entity/merchants/smugglersmarket.lua"}},
+        price = 25000000
+    },
+    {
+        name = "Trading Post"%_t,
+        tooltip = "Sells and buys a random range of goods. The owner gets 20% of every transaction, as well as cheaper prices. Attracts NPC traders."%_t,
+        scripts = {{script = "data/scripts/entity/merchants/tradingpost.lua"}},
+        price = 25000000
+    },
+    {
+        name = "Turret Factory"%_t,
+        tooltip = "Produces customized turrets and sells turret parts for high prices. The owner gets 20% of every transaction, as well as cheaper prices."%_t,
+        scripts = {{script = "data/scripts/entity/merchants/turretfactory.lua"}},
+        price = 30000000
+    },
+    {
+        name = "Military Outpost"%_t,
+        tooltip = "Provides combat missions to players."%_t .. "\n\n" ..
+                  "The population on this station buys and consumes a range of military goods. These goods can be picked up for free by the owner of the station. Attracts NPC traders."%_t,
+        scripts = {
+            {script = "data/scripts/entity/merchants/militaryoutpost.lua"},
+            {script = "data/scripts/entity/merchants/consumer.lua", args = {MilitaryOutpostConsumerArguments()}},
+        },
+        getPrice = function()
+            return calculateConsumerValue({MilitaryOutpostConsumerArguments()})
+        end
+    },
+
+    {
+        name = "Shipyard"%_t,
+        tooltip = "Builds ships. The owner gets the production fee paid by other players. Production fee is free for the owner of the shipyard."%_t .. "\n\n" ..
+                  "The population on this station buys and consumes a range of technological goods. These goods can be picked up for free by the owner of the station. Attracts NPC traders."%_t,
+        scripts = {
+            {script = "data/scripts/entity/merchants/shipyard.lua"},
+            {script = "data/scripts/entity/merchants/repairdock.lua"},
+            {script = "data/scripts/entity/merchants/consumer.lua", args = {ShipyardConsumerArguments()}},
+        },
+        getPrice = function()
+            return 20000000 +
+                    calculateConsumerValue({ShipyardConsumerArguments()})
+        end
+    },
+    {
+        name = "Repair Dock"%_t,
+        tooltip = "Repairs ships. The owner gets 20% of every transaction, as well as cheaper prices."%_t .. "\n\n" ..
+                  "The population on this station buys and consumes a range of technological goods. These goods can be picked up for free by the owner of the station. Attracts NPC traders."%_t,
+        scripts = {
+            {script = "data/scripts/entity/merchants/repairdock.lua"},
+            {script = "data/scripts/entity/merchants/consumer.lua", args = {RepairDockConsumerArguments()}},
+        },
+        getPrice = function()
+            return 10000000 +
+                    calculateConsumerValue({RepairDockConsumerArguments()})
+        end
+    },
+}
 
 -- if this function returns false, the script will not be listed in the interaction window on the client,
 -- even though its UI may be registered
@@ -59,15 +207,17 @@ function StationFounder.initUI()
     local tabbedWindow = window:createTabbedWindow(Rect(vec2(10, 10), size - 10))
 
     -- create buy tab
-    local buyTab0 = tabbedWindow:createTab("Basic"%_t, "data/textures/icons/purse.png", "Basic Factories"%_t)
-    local buyTab1 = tabbedWindow:createTab("Low"%_t, "data/textures/icons/purse.png", "Low Tech Factories"%_t)
-    local buyTab2 = tabbedWindow:createTab("Advanced"%_t, "data/textures/icons/purse.png", "Advanced Factories"%_t)
-    local buyTab3 = tabbedWindow:createTab("High"%_t, "data/textures/icons/purse.png", "High Tech Factories"%_t)
+    local buyTab0 = tabbedWindow:createTab("Basic"%_t, "data/textures/icons/factory-arm.png", "Basic Factories"%_t)
+    local buyTab1 = tabbedWindow:createTab("Low"%_t, "data/textures/icons/factory-arm.png", "Low Tech Factories"%_t)
+    local buyTab2 = tabbedWindow:createTab("Advanced"%_t, "data/textures/icons/factory-arm.png", "Advanced Factories"%_t)
+    local buyTab3 = tabbedWindow:createTab("High"%_t, "data/textures/icons/factory-arm.png", "High Tech Factories"%_t)
+    local buyTab4 = tabbedWindow:createTab("Other Stations"%_t, "data/textures/icons/stars-stack.png", "Other Stations"%_t)
 
-    StationFounder.buildGui({0}, buyTab0)
-    StationFounder.buildGui({1, 2, 3}, buyTab1)
-    StationFounder.buildGui({4, 5, 6}, buyTab2)
-    StationFounder.buildGui({7, 8, 9}, buyTab3)
+    StationFounder.buildMiscStationGui(buyTab4)
+    StationFounder.buildFactoryGui({0}, buyTab0)
+    StationFounder.buildFactoryGui({1, 2, 3}, buyTab1)
+    StationFounder.buildFactoryGui({4, 5, 6}, buyTab2)
+    StationFounder.buildFactoryGui({7, 8, 9}, buyTab3)
 
     -- warn box
     local size = vec2(550, 230)
@@ -103,7 +253,60 @@ function StationFounder.initUI()
 
 end
 
-function StationFounder.buildGui(levels, tab)
+function StationFounder.buildMiscStationGui(tab)
+    -- make levels a table with key == value
+
+    -- create background
+    local frame = tab:createScrollFrame(Rect(vec2(), tab.size))
+    frame.scrollSpeed = 40
+    frame.paddingBottom = 17
+
+
+    local count = 0
+    for index, station in pairs(stations) do
+
+        local stationName = station.name
+
+        local padding = 10
+        local height = 30
+        local width = frame.size.x - padding * 4
+
+        local lower = vec2(padding, padding + ((height + padding) * count))
+        local upper = lower + vec2(width, height)
+
+        local rect = Rect(lower, upper)
+
+        local vsplit = UIVerticalSplitter(rect, 10, 0, 0.8)
+        vsplit.rightSize = 100
+
+        local button = frame:createButton(vsplit.right, "Transform"%_t, "onFoundStationButtonPress")
+        button.textSize = 16
+        button.bold = false
+
+        frame:createFrame(vsplit.left)
+
+        vsplit = UIVerticalSplitter(vsplit.left, 10, 7, 0.7)
+
+        local label = frame:createLabel(vsplit.left.lower, stationName, 14)
+        label.size = vec2(vsplit.left.size.x, vsplit.left.size.y)
+        label:setLeftAligned()
+
+        label.tooltip = station.tooltip or ""
+
+        local costs = StationFounder.getStationCost(station)
+
+        local label = frame:createLabel(vsplit.right.lower, createMonetaryString(costs) .. " Cr"%_t, 14)
+        label.size = vec2(vsplit.right.size.x, vsplit.right.size.y)
+        label:setRightAligned()
+
+        stationsByButton[button.index] = index
+
+        count = count + 1
+    end
+
+end
+
+function StationFounder.buildFactoryGui(levels, tab)
 
     -- make levels a table with key == value
     local l = {}
@@ -217,11 +420,11 @@ function StationFounder.buildGui(levels, tab)
         count = count + 1
 
     end
-
 end
 
 function StationFounder.onFoundFactoryButtonPress(button)
     selectedProduction = productionsByButton[button.index]
+    selectedStation = nil
 
     warnWindowLabel.caption = "This action is irreversible."%_t .."\n\n" ..
         "You're about to transform your ship into a ${factory}.\n"%_t % {factory = getTranslatedFactoryName(selectedProduction.production)} ..
@@ -236,6 +439,30 @@ function StationFounder.onConfirmTransformationButtonPress(button)
     invokeServerFunction("foundFactory", selectedProduction.goodName, selectedProduction.index)
 end
 
+
+function StationFounder.onFoundStationButtonPress(button)
+    selectedStation = stationsByButton[button.index]
+    selectedProduction = nil
+
+    local template = stations[selectedStation]
+
+    warnWindowLabel.caption = "This action is irreversible."%_t .."\n\n" ..
+        "You're about to transform your ship into a ${stationName}.\n"%_t % {stationName = template.name} ..
+        "Your ship will become immobile and, if required, will receive production extensions.\n"%_t ..
+        "Due to a systems change all turrets will be removed from your station."%_t
+    warnWindowLabel.fontSize = 14
+
+    warnWindow:show()
+end
+
+function StationFounder.onConfirmTransformationButtonPress(button)
+    if selectedProduction then
+        invokeServerFunction("foundFactory", selectedProduction.goodName, selectedProduction.index)
+    elseif selectedStation then
+        invokeServerFunction("foundStation", selectedStation)
+    end
+end
+
 function StationFounder.onCancelTransformationButtonPress(button)
     warnWindow:hide()
 end
@@ -244,6 +471,12 @@ function StationFounder.foundFactory(goodName, productionIndex)
 
     local buyer, ship, player = checkEntityInteractionPermissions(Entity(), AlliancePrivilege.FoundStations)
     if not buyer then return end
+
+    local settings = GameSettings()
+    if settings.maximumPlayerStations > 0 and buyer.numStations >= settings.maximumPlayerStations then
+        player:sendChatMessage("Server"%_t, 1, "Maximum station limit per faction (%s) of this server reached!"%_t, settings.maximumPlayerStations)
+        return
+    end
 
     local production = productionsByGood[goodName][productionIndex]
 
@@ -264,7 +497,7 @@ function StationFounder.foundFactory(goodName, productionIndex)
     local station = StationFounder.transformToStation()
     if not station then return end
 
-    buyer:payMoney(cost)
+    buyer:pay("Paid %1% credits to found a factory."%_T, cost)
 
     -- make a factory
     station:addScript("data/scripts/entity/merchants/factory.lua", "nothing")
@@ -282,6 +515,59 @@ function StationFounder.foundFactory(goodName, productionIndex)
     package.path = package.path .. ";mods/complexMod/scripts/entity/complexManager.lua"
     station:addScript("mods/complexMod/scripts/entity/complexManager.lua")
 end
+
+function StationFounder.foundStation(selected)
+
+    local buyer, ship, player = checkEntityInteractionPermissions(Entity(), AlliancePrivilege.FoundStations)
+    if not buyer then return end
+
+    local settings = GameSettings()
+    if settings.maximumPlayerStations > 0 and buyer.numStations >= settings.maximumPlayerStations then
+        player:sendChatMessage("Server"%_t, 1, "Maximum station limit per faction (%s) of this server reached!"%_t, settings.maximumPlayerStations)
+        return
+    end
+
+    local template = stations[selected]
+
+    if template == nil then
+        player:sendChatMessage("Server"%_t, 1, "The station you chose doesn't exist."%_t)
+        return
+    end
+
+    -- check if player has enough money
+    local cost = StationFounder.getStationCost(template)
+
+    local canPay, msg, args = buyer:canPay(cost)
+    if not canPay then
+        player:sendChatMessage("Station Founder"%_t, 1, msg, unpack(args))
+        return
+    end
+
+    local station = StationFounder.transformToStation()
+    if not station then return end
+
+    buyer:pay(Format("Paid %2% credits to found a %1%."%_T, template.name), cost)
+
+    -- make a factory
+    for _, script in pairs(template.scripts) do
+        local path = script.script
+        local args = script.args or {}
+
+        station:addScript(path, unpack(args))
+    end
+
+    -- remove all cargo that might have been added by scripts
+    for cargo, amount in pairs(station:getCargos()) do
+        station:removeCargo(cargo, amount)
+    end
+
+    -- insert cargo of the ship that founded the station
+    for good, amount in pairs(ship:getCargos()) do
+        station:addCargo(good, amount)
+    end
+
+end
+
 
 function StationFounder.transformToStation()
 
@@ -373,8 +659,13 @@ function StationFounder.getFactoryCost(production)
     return costs
 end
 
+
+function StationFounder.getStationCost(station)
+    return station.price or station:getPrice()
+end
+
+
 -- this function gets called every time the window is closed on the client
 function StationFounder.onCloseWindow()
     warnWindow:hide()
 end
-

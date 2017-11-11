@@ -82,7 +82,7 @@ end
 function initialize()
 
     if onServer() then
-        
+
     else
         requestGoods()
         --sync()
@@ -100,7 +100,7 @@ end
 
 function setComplexData(indexedComplexData)
     debugPrint(3, "setComplexData in CFAB")
-    
+
     subFactories = indexedComplexData
     setTradingGoods(subFactories)
 end
@@ -115,13 +115,13 @@ function setTradingGoods(orderedSubFactories)
                 goodList[result.name] = false
             end
         end
-        
+
         for _, garbage in pairs(production.garbages) do
             if goodList[garbage.name] == true then
                 goodList[garbage.name] = false
             end
         end
-        
+
         for _, ingredient in pairs(production.ingredients) do
             if goodList[ingredient.name] == true then
                 goodList[ingredient.name] = false
@@ -135,7 +135,7 @@ function setTradingGoods(orderedSubFactories)
             removeGoodFromAllLists(name)
         end
     end
-    
+
     --add possible new ones
     for _,data in pairs(orderedSubFactories) do
         local production = data.factoryTyp
@@ -147,7 +147,7 @@ function setTradingGoods(orderedSubFactories)
         for _, garbage in pairs(production.garbages) do
             a = addGoodToSoldGoods(goods[garbage.name]:good())
         end
-        
+
         for _, ingredient in pairs(production.ingredients) do
             a = addGoodToBoughtGoods(goods[ingredient.name]:good())
         end
@@ -157,7 +157,7 @@ function setTradingGoods(orderedSubFactories)
     debugPrint(3, "==============Bought==================", boughtGoods)
     debugPrint(3, "==============Sold====================", soldGoods)
     debugPrint(3, "==============Intermediate============", intermediateGoods)
-    
+
 end
 
 function initUI()
@@ -212,7 +212,7 @@ function onShowWindow()
 end
 
 function setTradingLists(lists)
-    if onClient() then 
+    if onClient() then
         debugPrint(3, "setTradingLists Client")
         synchTradingLists(lists.boughtGoods, lists.soldGoods, lists.intermediateGoods)
     else
@@ -320,11 +320,11 @@ function getAllPossibleProduction()
                     hasSpaceForSingleResult = true
                 end
             end
-            
+
             if not hasSpaceForResults and hasSpaceForSingleResult and not next(data.factoryTyp.garbages) and not next(data.factoryTyp.ingredients) then -- allow gas collectors and noble metal mines to continue producing
                 hasSpaceForResults = true
             end
-            
+
             local hasSpaceForGarbage = true
             for _, garbage in pairs(data.factoryTyp.garbages) do
                 if (getNumGoods(garbage.name) + garbage.amount * size + (goodsGettingProduced[garbage.name] or 0 )) > getMaxGoods(garbage.name) then
@@ -332,18 +332,18 @@ function getAllPossibleProduction()
                     debugPrint(3, "garbage false", data, garbage.name, getMaxGoods(garbage.name))
                 end
             end
-            
+
             if hasSpaceForResults == true and hasSpaceForGarbage == true then
                 for _,ingredient in pairs(data.factoryTyp.ingredients) do
-                    goodRequired[ingredient.name] = ingredient.amount * size + (goodRequired[ingredient.name] or 0)   
-                end 
+                    goodRequired[ingredient.name] = ingredient.amount * size + (goodRequired[ingredient.name] or 0)
+                end
                 productionList[i] = data
-            end   
+            end
         end
     end
-    
-    if Entity():hasScript(CMSCRIPT) then 
-        Entity():invokeFunction(CMSCRIPT, "synchProductionData", productionList) 
+
+    if Entity():hasScript(CMSCRIPT) then
+        Entity():invokeFunction(CMSCRIPT, "synchProductionData", productionList)
     else
         debugPrint(0, "has no Complex Manager")
     end
@@ -376,7 +376,7 @@ function getUpdateInterval()
 end
 
 -- this function gets called once each frame, on client and server
-function update(timeStep)   
+function update(timeStep)
     if currentlyProducing == true then
         duration = duration + timeStep
         if duration >= maxDuration then
