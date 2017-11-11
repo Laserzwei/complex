@@ -445,7 +445,6 @@ function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplex
     end
     timer:stop()
     debugPrint(4, "Time check", nil, "took ".. timer.microseconds/1000 .."ms for faulty complexdata check" )
-    print("here")
     -- get the money required for the plan
     local requiredMoney = connectorPipePlan:getMoneyValue()
     local requiredResources = {connectorPipePlan:getResourceValue()}
@@ -455,9 +454,8 @@ function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplex
         return
     end
 
-    print("there")
     -- let the player pay
-    player:pay(requiredMoney, unpack(requiredResources))
+    player:pay("",requiredMoney, unpack(requiredResources))
     player:sendChatMessage(self.title, 0, "Complex Construction begins.")
 
     --extending Complex from data send

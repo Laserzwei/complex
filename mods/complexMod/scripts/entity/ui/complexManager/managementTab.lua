@@ -403,7 +403,7 @@ function SellComplex(clientMoney)
         return
     end
     local owner = Faction(Entity().factionIndex)
-    owner:receiveMoney(networth)
+    owner:receive("",networth)
     Entity():removeScript("mods/complexMod/scripts/entity/merchants/complexFactory.lua")
     Entity():setValue("isComplex", nil)
     terminate()
