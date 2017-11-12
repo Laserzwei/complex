@@ -1,3 +1,9 @@
+[0.90]
+- Updated to 0.15
+- using production from assemblers the same way factories do
+- Improved overview of tradingTab by changing the layout slightly, assigned cargo now has a  '*' as indicator, tradinglists are sorted
+- extended config
+
 [0.89]
 - Fixed crashes and general weird behavior with asynchronous Entity changes (This is what broke v0.88 since Avorion 0.13)[The build menu needs a manual input(button press/slider change/station selection) to properly show the next build phase]
 - Founding-stations for complexes can now have a different rootIndex than 0 (The whole mechanic behind got a lot more forgiving)

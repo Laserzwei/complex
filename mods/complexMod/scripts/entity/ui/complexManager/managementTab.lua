@@ -3,11 +3,6 @@ require ("utility")
 
 managementTab = {}
 
-VERSION = "[0.89] "
-MOD = "[CPX3]"
-
-DEBUGLEVEL = 2              -- is overwritten by DEBUGLEVEL in complexManager.lua
-
 --data
 managementTab.allPermissions = {
     [AlliancePrivilege.Invite + 1] = "Invite",
@@ -62,15 +57,6 @@ local sellButton, transferButton
 
 local warnWindow, warnWindowLabel
 
-function debugPrint(debuglvl, msg, tableToPrint, ...)
-    if debuglvl <= DEBUGLEVEL then
-        print(MOD..VERSION..msg, ...)
-        if type(tableToPrint) == "table" then
-            printTable(tableToPrint)
-        end
-    end
-end
-
 function managementTab.initialize()
   if onServer() then
     managementTab.getPermissions()
@@ -110,7 +96,6 @@ function managementTab.createManagementUI(tabWindow)
                 checkBox.tooltip = "No permission Management for players. Transfer the complex to your alliance first."
             end
             table.insert(managementTab.checkBoxList, checkBox)
-            --print(j, permission, #managementTab.allPermissions)
         end
     end
     y = y + 40

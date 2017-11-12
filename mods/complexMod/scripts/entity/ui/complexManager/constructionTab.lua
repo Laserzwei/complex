@@ -1,13 +1,6 @@
 package.path = package.path .. ";data/scripts/lib/?.lua"
 require ("utility")
 
-FSCRIPT = "data/scripts/entity/merchants/factory.lua"
-CMSCRIPT = "mods/complexMod/scripts/entity/complexManager.lua"
-
-VERSION = "[0.89] "
-MOD = "[CPX3]"
-
-DEBUGLEVEL = 2
 -- Complex building menu items
 local dirButtonXP, dirButtonYP, dirButtonZP
 local dirButtonXM, dirButtonYM, dirButtonZM
@@ -45,15 +38,6 @@ local targetCoreBlockCoord
 local constructionData = {}     --{[buildorder] = {[BlockID]= {["position"] = {x,y,z}, ["size"] = {x,y,z}, ["rootID"] = rootID}}}
 
 local UIinititalised = false
-
-function debugPrint(debuglvl, msg, tableToPrint, ...)
-    if debuglvl <= DEBUGLEVEL then
-        print(MOD..VERSION..msg, ...)
-        if type(tableToPrint) == "table" then
-            printTable(tableToPrint)
-        end
-    end
-end
 
 function createConstructionUI(tabWindow)
     local container = tabWindow:createContainer(Rect(vec2(0, 0), tabWindow.size));

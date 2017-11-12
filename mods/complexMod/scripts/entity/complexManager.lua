@@ -1,6 +1,7 @@
 package.path = package.path .. ";data/scripts/lib/?.lua"
 package.path = package.path .. ";mods/complexMod/scripts/entity/ui/complexManager/?.lua"
---package.path = package.path .. ";data/scripts/entity/?.lua"
+--package.path = package.path .. ";mods/complexMod/config/?.lua"
+
 require ("utility")
 require ("faction")
 require ("defaultscripts")
@@ -13,17 +14,19 @@ require ("constructionTab")
 require ("overviewTab")
 require ("tradingTab")
 mT = require ("managementTab")
-Dialog = require("dialogutility")
+Dialog = require ("dialogutility")
+complexC = dofile("mods/complexMod/config/config.lua")
 
+MOD = complexC.modName
+VERSION = complexC.version
+DEBUGLEVEL = complexC.debuglvl
+COMPLEXINTEGRITYCHECK = complexC.complexIntegrityCheck
+CFSCRIPT = complexC.CFSCRIPT
+CMSCRIPT = config.CMSCRIPT
+FSCRIPT = complexC.FSCRIPT
+baseProductionCapacity = complexC.baseProductionCapacity
+debugPrint = config.debugPrint
 
-VERSION = "[0.89] "
-MOD = "[CPX3]"
-
-DEBUGLEVEL = 2
-
-COMPLEXINTEGRITYCHECK = 60   --default every 60 seconds
-CFSCRIPT = "mods/complexMod/scripts/entity/merchants/complexFactory.lua"
-FSCRIPT = "data/scripts/entity/merchants/factory.lua"
 -- Menu items
 local window
 
@@ -39,22 +42,11 @@ local targetCoreBlockCoord
 local productionData = {}
 local constructionData = {}     --{[buildorder] = {["BlockID"]= num, ["position"] = {x,y,z}, ["size"] = {x,y,z}, ["rootID"] = rootID}}}
 local bonusValues = {}
-local productionValue
+local reqProduction = 0
 
 local timepassedAfterLastCheck = 65
 
 permissions = mT.permissions
-
-
-
-function debugPrint(debuglvl, msg, tableToPrint, ...)
-    if debuglvl <= DEBUGLEVEL then
-        print(MOD..VERSION..msg, ...)
-        if type(tableToPrint) == "table" then
-            printTable(tableToPrint)
-        end
-    end
-end
 
 function initialize()
     local station = Entity()
@@ -298,12 +290,12 @@ function passChangedTradingDataToTT(pTradingData)
     end
 end
 
-function synchProductionData(pProductionData, productionValue)
+function synchProductionData(pProductionData, pProductionValue)
     debugPrint(3,"sync of ProductionData", pProductionData)
     if onServer() then
-        productionValue = productionValue or 0
-        broadcastInvokeClientFunction("updateOTFactoryList", pProductionData, productionValue)
-        broadcastInvokeClientFunction("updateOTListdataPanel")
+        reqProduction = pProductionValue or 0
+        broadcastInvokeClientFunction("updateOTFactoryList", pProductionData, reqProduction)
+        broadcastInvokeClientFunction("updateProductionValue", reqProduction)
         productionData = pProductionData
     else
         debugPrint(2,"not supposed to happen")
@@ -514,7 +506,8 @@ function restore(restoreData)
         end
         bonusValues = restoreData.bonusValues or {}
         synchComplexdata(indexedComplexData)
-        synchProductionData(productionData, restoreData.productionValue)
+        reqProduction = restoreData.reqProduction
+        synchProductionData(productionData, reqProduction)
         applyBoni()
     end
 end
@@ -536,7 +529,7 @@ function secure()
     end
 
     savedata["productionData"] = pProductionData
-    savedata.productionValue = productionValue
+    savedata.reqProduction = reqProduction
     savedata["indexedComplexData"] = pIndexedComplexData
     savedata.bonusValues = bonusValues
     return savedata

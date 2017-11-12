@@ -1,22 +1,25 @@
 package.path = package.path .. ";data/scripts/lib/?.lua"
 package.path = package.path .. ";mods/complexMod/scripts/lib/complextradingmanager.lua"
+--package.path = package.path .. ";mods/complexMod/config/?.lua"
+complexConfig = dofile("mods/complexMod/config/config.lua")
 require ("utility")
 require ("complextradingmanager")
 require ("goods")
 require ("productions")
-require("stringutility")
+require ("stringutility")
 
+MOD = complexConfig.modName
+VERSION = complexConfig.version
+DEBUGLEVEL = complexConfig.debuglvl
+CFSCRIPT = complexConfig.CFSCRIPT
+CMSCRIPT = complexConfig.CMSCRIPT
+FSCRIPT = complexConfig.FSCRIPT
+local minDuration = complexConfig.minDuration
+local baseProductionCapacity = complexConfig.baseProductionCapacity
+debugPrint = config.debugPrint
 
-VERSION = "[0.89] "
-MOD = "[CPX3]"
-
-DEBUGLEVEL = 2
-
-CMSCRIPT = "mods/complexMod/scripts/entity/complexManager.lua"
 subFactories = {}
 
-local minDuration = 1.0
-local baseProductionCapacity = 100
 local currentProductionCycle = {}
 
 lowestPriceFactor = 0.5
@@ -26,15 +29,6 @@ local currentlyProducing = false
 --UI
 buyTab = nil
 sellTab = nil
-
-function debugPrint(debuglvl, msg, tableToPrint, ...)
-    if debuglvl <= DEBUGLEVEL then
-        print(MOD..VERSION..msg, ...)
-        if type(tableToPrint) == "table" then
-            printTable(tableToPrint)
-        end
-    end
-end
 
 function restore(data)
     if callingPlayer == nil then
@@ -167,7 +161,7 @@ function initUI()
     local window = menu:createWindow(Rect(res * 0.5 - size * 0.5, res * 0.5 + size * 0.5));
     menu:registerWindow(window, "Buy/Sell Goods"%_t);
 
-    window.caption = "Complex"%_t
+    window.caption = "[Complex] "%_t..Entity().name
     window.showCloseButton = 1
     window.moveable = 1
 
@@ -332,7 +326,6 @@ function getAllPossibleProduction()
     end
 
     if Entity():hasScript(CMSCRIPT) and #subFactories > 1 then
-        print(Entity().name,productionValue)
         Entity():invokeFunction(CMSCRIPT, "synchProductionData", productionList, productionValue)
     end
     return productionList, goodRequired, productionValue

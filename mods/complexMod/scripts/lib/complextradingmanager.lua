@@ -6,12 +6,6 @@ require ("stringutility")
 require ("player")
 require ("faction")
 
-VERSION = "[0.89] "
-MOD = "[CPX3]"
-
-DEBUGLEVEL = 2              -- is overwritten by DEBUGLEVEL in complexFactory.lua
-
-CMSCRIPT = "mods/complexMod/scripts/entity/complexManager.lua"
 buyPriceFactor = 1
 sellPriceFactor = 1
 
@@ -50,15 +44,6 @@ guiInitialized = false
 
 --
 useTimeCounter = 0 -- time counter for using up bought products
-
-function debugPrint(debuglvl, msg, tableToPrint, ...)
-    if debuglvl <= DEBUGLEVEL then
-        print(MOD..VERSION..msg, ...)
-        if type(tableToPrint) == "table" then
-            printTable(tableToPrint)
-        end
-    end
-end
 
 -- help functions
 function isSoldBySelf(good)
@@ -1320,7 +1305,7 @@ function getMaxStock(goodName)
     local goodSize = good.size
     if assignedCargoList[goodName] ~= nil then
         if assignedCargo > self.maxCargoSpace then      --Something altered the cargoamount
-            debugPrint(1, "more Cargo assigned than available: ", nil, assignedCargo, self.maxCargoSpace)
+            debugPrint(3, "more Cargo assigned than available: ", nil, assignedCargo, self.maxCargoSpace)
             if self.freeCargoSpace < (assignedCargoList[goodName] - self:getCargoAmount(goodName))* goodSize then
                 return math.floor(self.freeCargoSpace/goodSize)
             else
@@ -1364,7 +1349,7 @@ function assignCargo(goodName, amount)                                          
         else
             debugPrint(3, "assignCargo on Client", nil, amount, ret)
         end
-        return 0
+        return
     end
 
     if assignedCargoList[goodName] == nil then                                              --newly created assignment
@@ -1398,7 +1383,10 @@ function assignCargo(goodName, amount)                                          
 end
 
 function unassignCargo(goodName)
-    debugPrint(3, "assigned Cargo", nil, assignedCargo)
+    if onClient() then
+        invokeServerFunction("unassignCargo", goodName)
+    end
+    debugPrint(3, "unAssigned Cargo", nil, onClient(), assignedCargo)
     if assignedCargoList[goodName] == nil then
         return
     else

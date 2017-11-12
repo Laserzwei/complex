@@ -1,12 +1,6 @@
 package.path = package.path .. ";data/scripts/lib/?.lua"
 require ("utility")
 
-CMSCRIPT = "mods/complexMod/scripts/entity/complexManager.lua"
-
-VERSION = "[0.89] "
-MOD = "[CPX3]"
-
-DEBUGLEVEL = 2              -- is overwritten by DEBUGLEVEL in complexManager.lua
 --UI
 local factoryList
 local lastKnownSelected
@@ -20,17 +14,8 @@ local changeSizeButton
 
 --data
 local indexedComplexData
-local productionData, productionValue
+local productionData, productionValue = nil, 5
 local upgradeMap = {}
-
-function debugPrint(debuglvl, msg, tableToPrint, ...)
-    if debuglvl <= DEBUGLEVEL then
-        print(MOD..VERSION..msg, ...)
-        if type(tableToPrint) == "table" then
-            printTable(tableToPrint)
-        end
-    end
-end
 
 function createOverviewUI(tabWindow)
     windowContainer = tabWindow:createContainer(Rect(vec2(0, 0), tabWindow.size))
@@ -62,8 +47,10 @@ function createOverviewUI(tabWindow)
 
     nametag = windowContainer:createLabel(vec2(), "Complex Overview", 20)
     UIOrganizer(hsplit.top):placeElementCenter(nametag)
-
-    scrollFrame = windowContainer:createScrollFrame(hsplit.bottom)
+    local rect = hsplit.bottom
+    rect.height = rect.height + 30
+    rect.position = rect.position + vec2(0, -30/2)
+    scrollFrame = windowContainer:createScrollFrame(rect)
     scrollFrame.scrollSpeed = 25
     scrollFrame.paddingBottom = 10
 
@@ -125,7 +112,7 @@ function updateOTFactoryList(pProductionData, pProductionValue)
     else
         productionData = productionData or {}
     end
-    productionValue = pProductionValue or 0
+    productionValue = pProductionValue or productionValue
     if indexedComplexData == nil then return end
     if factoryList == nil then return end
     factoryList:clear()
@@ -198,7 +185,7 @@ function updateOTListdataPanel()
     end
 
     if selectedIndex == 0 then                                          --whole Complex
-        local x,y = 5,15
+        local x,y = 5,10
         factorySizeSelector.visible = false
         maxEnergyLabel.visible = false
 
@@ -230,6 +217,13 @@ function updateOTListdataPanel()
             end
         end
         local lblSize = scrollFrame.size.x/2 - 50
+        local pX = scrollFrame.size.x/2 - lblSize/2
+        local str = "current/total: ".. createMonetaryString(productionValue or 0) .."/"..createMonetaryString(getFullProductionCost())
+        str = str.."\nRate: "..createMonetaryString(round(Entity():getPlan():getStats().productionCapacity + (baseProductionCapacity * #indexedComplexData))).."/s"
+        local pUI = scrollFrame:createLabel(vec2(pX,y), str, 18)
+        pUI.size = vec2(lblSize,pUI.size.y)
+        table.insert(uiTrashList, pUI)
+        y = y + 50
         if next(consumption) then
             local pUI = scrollFrame:createLabel(vec2(x,y), "Consumption", 18)
             pUI.size = vec2(lblSize,pUI.size.y)
@@ -252,6 +246,8 @@ function updateOTListdataPanel()
 					productionRatio = "- Overflow: " .. productions[name] - amount
                     pUI.color = ColorRGB(0.0, 0.5, 0.0)
 				end
+            else
+                pUI.color = ColorRGB(0.5, 0.5, 0.5)
             end
             local ingredData = name%_t..": -"..amount.."/cycle " .. productionRatio
             pUI.caption = ingredData
@@ -259,7 +255,7 @@ function updateOTListdataPanel()
             table.insert(uiTrashList, pUI)
             y = y + 25
         end
-        local x,y = scrollFrame.size.x/2 -10, 15
+        local x,y = scrollFrame.size.x/2 -10, 10 + 50
         if next(productions) then
             local pUI = scrollFrame:createLabel(vec2(x,y), "Production", 18)
             pUI.size = vec2(lblSize,pUI.size.y)
@@ -267,15 +263,16 @@ function updateOTListdataPanel()
             table.insert(uiTrashList, pUI)
             y = y + 35
         end
-        for name,amount in spairs(productions, function(t,a,b) return t[b]["sorting"] < t[a]["sorting"] end) do
+        for name,amount in spairs(productions) do
             local ingredData = name%_t..": "..amount.."/cycle"
             local pUI = scrollFrame:createLabel(vec2(x,y), ingredData, 14)
             pUI.size = vec2(lblSize,pUI.size.y)
+            pUI.color = ColorRGB(0.7, 0.7, 0.7)
             table.insert(uiTrashList, pUI)
             y = y + 25
         end
     else
-        local x,y = 5,15
+        local x,y = 5,10
         local data = indexedComplexData[selectedIndex]
         if data == nil then debugPrint(2,"no data for Panel") return end
         local factoryBlockId = data.factoryBlockId
@@ -357,6 +354,7 @@ function updateOTListdataPanel()
         y = y + 35
 
         factorySizeSelector.visible = false
+        local selected = factorySizeSelector.selectedIndex
         factorySizeSelector:clear()
         --factorySizeSelector = scrollFrame:createComboBox(Rect(vec2(x,y), vec2(x+split.right.size.x, y+30)), "onfactorySizeSelected")
         factorySizeSelector.upper = vec2(maxEnergyLabel.upper.x, maxEnergyLabel.lower.y + 30 + 35)
@@ -410,6 +408,8 @@ function updateOTListdataPanel()
 
             table.insert(uiTrashList, pUI)
         end
+        if selected < 0 then selected = 0 end
+        factorySizeSelector.selectedIndex = selected
         y = y + 5
         changeSizeButton = scrollFrame:createButton(Rect(vec2(x,y), vec2(x+120, y +25)), "set size", "onSizeSet")
         table.insert(uiTrashList, changeSizeButton)
@@ -424,6 +424,7 @@ end
 
 function updateProductionValue(pVal)
     productionValue = pVal
+    updateOTListdataPanel()
 end
 
 function onMoveUpPressed()

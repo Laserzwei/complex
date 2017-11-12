@@ -1,12 +1,7 @@
 package.path = package.path .. ";data/scripts/lib/?.lua"
 require ("utility")
+require ("goods")
 
-CFSCRIPT = "mods/complexMod/scripts/entity/merchants/complexFactory.lua"
-
-VERSION = "[0.89] "
-MOD = "[CPX3]"
-
-DEBUGLEVEL = 2
 --complex Good-Management Menu
 --Top
 local soldGoodsListbox, intermediateGoodsListbox, boughtGoodsListbox
@@ -28,101 +23,84 @@ local goodsOverviewsListBoxEx
 --data
 local tradingdata
 
-function debugPrint(debuglvl, msg, tableToPrint, ...)
-    if debuglvl <= DEBUGLEVEL then
-        print(MOD..VERSION..msg, ...)
-        if type(tableToPrint) == "table" then
-            printTable(tableToPrint)
-        end
-    end
-end
-
 function createTradingUI(tabWindow)
     local container = tabWindow:createContainer(Rect(vec2(0, 0), tabWindow.size))
-    
+
     local hsplit = UIHorizontalSplitter(Rect(vec2(0, 0), container.size), 10, 10, 0.4)
     local vsplitList = {hsplit.top.size.x*0.26, hsplit.top.size.x*0.37, hsplit.top.size.x*0.63, hsplit.top.size.x*0.74}     --partition(0) gets 26%, partition(1) 11% partition(2) 26% ...
     local vlsplits = UIArbitraryVerticalSplitter(hsplit.top, 5, 5, unpack(vsplitList))
-    
+
     soldGoodsListbox = container:createListBox(vlsplits:partition(0))
     local label = container:createLabel(vec2(vlsplits:partition(0).lower.x,vlsplits:partition(0).lower.y - 20), "Sold Goods" ,14)
     local lister = UIVerticalLister(vlsplits:partition(1), 10, 10)
-    
+
     intermediateToSoldButton = container:createButton(Rect(),"<", "onIntermediateToSold")
     intermediateToSoldButton.active = false
     lister:placeElementCenter(intermediateToSoldButton)
-    
+
     soldToIntermediateButton = container:createButton(Rect(),">", "onSoldToIntermediate")
     soldToIntermediateButton.active = false
     lister:placeElementCenter(soldToIntermediateButton)
-    
+
     soldToBoughtButton = container:createButton(Rect(),">>", "onSoldToBought")
     soldToBoughtButton.active = false
     lister:placeElementCenter(soldToBoughtButton)
-    
+
     intermediateGoodsListbox = container:createListBox(vlsplits:partition(2))
     local label = container:createLabel(vec2(vlsplits:partition(2).lower.x,vlsplits:partition(2).lower.y - 20), "Intermediate Goods" ,14)
-    
+
     local lister = UIVerticalLister(vlsplits:partition(3), 10, 10)
-    
+
     intermediateToBoughtButton = container:createButton(Rect(),">", "onIntermediateToBought")
     intermediateToBoughtButton.active = false
     lister:placeElementCenter(intermediateToBoughtButton)
-    
+
     boughtToIntermediateButton = container:createButton(Rect(),"<", "onBoughtToIntermediate")
     boughtToIntermediateButton.active = false
     lister:placeElementCenter(boughtToIntermediateButton)
-    
+
     boughtToSoldbutton = container:createButton(Rect(),"<<", "onBoughtToSold")
     boughtToSoldbutton.active = false
     lister:placeElementCenter(boughtToSoldbutton)
-    
+
     boughtGoodsListbox = container:createListBox(vlsplits:partition(4))
     local label = container:createLabel(vec2(vlsplits:partition(4).lower.x,vlsplits:partition(4).lower.y - 20), "Bought Goods" ,14)
-    
-    
-    local hsplit2 = UIHorizontalSplitter(hsplit.bottom, 0, 0, 0.25)   
-    local lister = UIVerticalLister(hsplit2.top, 0, 1)
-    lister:setPadding(2,2,0,0)
-    lister:setMargin(2,2,0,0)
-    
-    assignedCargoLabel = container:createLabel(vec2(), "Assignable Cargo: "..tostring("0") ,18)
-    lister:placeElementLeft(assignedCargoLabel)
-    
-    
-    
-    local rect = lister:placeLeft(vec2(hsplit2.top.width,30))
-    rect.lower = vec2(rect.lower.x, rect.lower.y -40)
-    rect.upper = vec2(rect.upper.x, rect.upper.y-40)
-    local vsplit = UIVerticalSplitter(rect, 0, 0, 0.4)
-    vsplit:setPadding(2,2,0,0)
-    vsplit:setMargin(2,2,0,0)
-    --container:createFrame(hsplit2.top)
-    
-    currentGoodCargoLabel = container:createLabel(vsplit.left.lower,"Select a Good from above", 18)
-    
-    local rect = vsplit.right
-    rect.lower = vec2(rect.lower.x  , rect.lower.y)
-    rect.upper = vec2(rect.upper.x, rect.upper.y)
-    local vsplit = UIVerticalSplitter(rect, 0, 0, 0.2)
-    vsplit:setPadding(2,2,0,0)
-    vsplit:setMargin(2,2,0,0)
-    currentGoodTextBox = container:createTextBox(vsplit.left, "onAssignAmountChanged")
+
+
+    local hsplit2 = UIHorizontalSplitter(hsplit.bottom, 0, 0, 0.25)
+    local x, y = vlsplits:partition(0).lower.x, hsplit2.top.lower.y + 10
+
+    assignedCargoLabel = container:createLabel(vec2(x,y), "Assignable Cargo: "..tostring("0") ,18)
+    y = y + 35
+
+    currentGoodCargoLabel = container:createLabel(vec2(x,y),"Select a Good from above", 18)
+    y = y + 35
+
+    local textboxSize = 200
+    local assignButtonSize = 120
+    local unAssignButtonSize = 120
+
+    local rect = Rect(x, y, x + textboxSize, y+35)
+    currentGoodTextBox = container:createTextBox(rect, "onAssignAmountChanged")
     currentGoodTextBox.text = "0"
     currentGoodTextBox.allowedCharacters = "0123456789"
     currentGoodTextBox.clearOnClick = 0
-    
-    local vsplit = UIVerticalSplitter(vsplit.right, 0, 0, 0.1)
-    vsplit:setPadding(2,2,0,0)
-    vsplit:setMargin(2,2,0,0)
-    currentGoodAcceptButton = container:createButton(vsplit.left, "Set", "onCargoAssigned")
+    x = x + textboxSize + 4
 
-    currentGoodCargoLabelMin = container:createLabel(vsplit.right.lower, "Min/Max: 0/0",18)
-    
+    rect = Rect(x, y, x + assignButtonSize, y+35)
+    currentGoodAcceptButton = container:createButton(rect, "assign", "onCargoAssigned")
+    x = x + assignButtonSize + 4
+
+    rect = Rect(x, y, x + unAssignButtonSize, y+35)
+    currentGoodAcceptButton = container:createButton(rect, "unassign", "onCargoUnAssigned")
+    x = x + unAssignButtonSize + 4
+
+    currentGoodCargoLabelMin = container:createLabel(vec2(x,y+5), "Min/Max: 0/0",18)
+
     goodsOverviewsListBoxEx = container:createListBoxEx(hsplit2.bottom )
     goodsOverviewsListBoxEx.columns = 6
     goodsOverviewsListBoxEx:addRow("Good", "Stock", "Max. Stock", "Size", "Cargospace", "CurrentPrice")
-    
+
     container:createFrame(hsplit2.bottom)
 end
 
@@ -166,74 +144,66 @@ function updateTT(timeStep)                                               --chec
     end
 
     if goodListsSelected.soldGoodsListbox ~= soldGoodsListbox.selected then
-        
+
         soldToIntermediateButton.active = true
         soldToBoughtButton.active = true
         intermediateToSoldButton.active = false
         intermediateToBoughtButton.active = false
         boughtToIntermediateButton.active = false
         boughtToSoldbutton.active = false
-        
+
 
         intermediateGoodsListbox:deselect()
         boughtGoodsListbox:deselect()
-        
-        goodListsSelected.soldGoodsListbox = soldGoodsListbox.selected        
+
+        goodListsSelected.soldGoodsListbox = soldGoodsListbox.selected
         goodListsSelected.intermediateGoodsListbox = -1
         goodListsSelected.boughtGoodsListbox = -1
         goodSelected = nil
         updateCargoassignment()
     end
     if goodListsSelected.intermediateGoodsListbox ~= intermediateGoodsListbox.selected then
-        
+
         soldToIntermediateButton.active = false
         soldToBoughtButton.active = false
         intermediateToSoldButton.active = true
         intermediateToBoughtButton.active = true
         boughtToIntermediateButton.active = false
         boughtToSoldbutton.active = false
-        
+
         soldGoodsListbox:deselect()
         boughtGoodsListbox:deselect()
-        
-        goodListsSelected.soldGoodsListbox = -1      
+
+        goodListsSelected.soldGoodsListbox = -1
         goodListsSelected.intermediateGoodsListbox = intermediateGoodsListbox.selected
         goodListsSelected.boughtGoodsListbox = -1
         goodSelected = nil
         updateCargoassignment()
     end
     if goodListsSelected.boughtGoodsListbox ~= boughtGoodsListbox.selected then
-    
+
         soldToIntermediateButton.active = false
         soldToBoughtButton.active = false
         intermediateToSoldButton.active = false
         intermediateToBoughtButton.active = false
         boughtToIntermediateButton.active = true
         boughtToSoldbutton.active = true
-        
+
         soldGoodsListbox:deselect()
         intermediateGoodsListbox:deselect()
-        
-        goodListsSelected.soldGoodsListbox = -1        
+
+        goodListsSelected.soldGoodsListbox = -1
         goodListsSelected.intermediateGoodsListbox = -1
         goodListsSelected.boughtGoodsListbox = boughtGoodsListbox.selected
         goodSelected = nil
         updateCargoassignment()
     end
-    
 end
 
 function updateTradingdata(pTradingdata)
     debugPrint(3, "updateTradingdata")
-    if(pTradingdata == nil) then
-        --updateTradingLists()
-        updateGoodsOverview()
-        debugPrint(3, "updateTT fast")
-        return
-    end
-    pTradingdata = pTradingdata or {}
-    if next(pTradingdata) == nil then return end
-    tradingdata = pTradingdata
+    tradingdata = pTradingdata or (tradingdata or {})
+    if next(tradingdata) == nil then return end
     local numBought = 0
     local boughtGoods = {}
     for name, pair in pairs(tradingdata.boughtGoods) do
@@ -243,7 +213,7 @@ function updateTradingdata(pTradingdata)
     end
     tradingdata.boughtGoods = boughtGoods
     tradingdata.numBought = numBought
-    
+
     local numSold = 0
     local soldGoods = {}
     for name, pair in pairs(tradingdata.soldGoods) do
@@ -253,8 +223,8 @@ function updateTradingdata(pTradingdata)
     end
     tradingdata.soldGoods = soldGoods
     tradingdata.numSold = numSold
-    
-    local numIntermediate = 0 
+
+    local numIntermediate = 0
     local intermediateGoods = {}
     for name, pair in pairs(tradingdata.intermediateGoods) do
         local index, good = next(pair)
@@ -266,41 +236,51 @@ function updateTradingdata(pTradingdata)
 
     updateTradingLists()
     updateGoodsOverview()
+    updateCargoassignment()
 end
 
 function updateTradingLists()
     if soldGoodsListbox == nil then return end
     if tradingdata == nil then return end
+    local sel = soldGoodsListbox.selected
     soldGoodsListbox:clear()
     soldGoodsListboxList = {}
     local i = 0
-    for name,_ in pairs(tradingdata.soldGoods) do
-        soldGoodsListbox:addEntry(name)
+    for name,_ in spairs(tradingdata.soldGoods) do
         soldGoodsListboxList[i] = name
+        if tradingdata.assignedCargoList[name] then name = name.."*" end
+        soldGoodsListbox:addEntry(name)
         i = i + 1
     end
+    if sel then soldGoodsListbox:select(sel) end
+    sel = intermediateGoodsListbox.selected
     intermediateGoodsListbox:clear()
     intermediateGoodsListboxList = {}
     local i = 0
-    for name,_ in pairs(tradingdata.intermediateGoods) do
-        intermediateGoodsListbox:addEntry(name)
+    for name,_ in spairs(tradingdata.intermediateGoods) do
         intermediateGoodsListboxList[i] = name
+        if tradingdata.assignedCargoList[name] then name = name.."*" end
+        intermediateGoodsListbox:addEntry(name)
         i = i + 1
     end
+    if sel then intermediateGoodsListbox:select(sel) end
+    sel = boughtGoodsListbox.selected
     boughtGoodsListbox:clear()
     boughtGoodsListboxList = {}
     local i = 0
-    for name,_ in pairs(tradingdata.boughtGoods) do
-        boughtGoodsListbox:addEntry(name)
+    for name,_ in spairs(tradingdata.boughtGoods) do
         boughtGoodsListboxList[i] = name
+        if tradingdata.assignedCargoList[name] then name = name.."*" end
+        boughtGoodsListbox:addEntry(name)
         i = i + 1
     end
+    if sel then boughtGoodsListbox:select(sel) end
 end
 
 function updateCargoassignment()
     local assignedCargo = 0
-    for _,amount in pairs(tradingdata.assignedCargoList) do
-        assignedCargo = assignedCargo + amount
+    for i,amount in pairs(tradingdata.assignedCargoList) do
+        assignedCargo = assignedCargo + (amount * goods[i].size)
     end
     local freeCargo = Entity().maxCargoSpace - assignedCargo
     if soldGoodsListbox.selected >= 0 then
@@ -308,7 +288,7 @@ function updateCargoassignment()
         goodSelected = soldGoodsListboxList[selected]
         local _, good = next(tradingdata.soldGoods[goodSelected])
         local back,maxStock = Entity():invokeFunction(CFSCRIPT, "pGetMaxStock", goodSelected)
-        assignedCargoLabel.caption = "Assignable Cargo: ".. tRN(math.floor(freeCargo/good.size))
+        assignedCargoLabel.caption = "Unassigned Cargo: ".. tRN(math.floor(freeCargo/good.size))
         currentGoodCargoLabel.caption = goodSelected.." change from "..tRN(maxStock).." to: "
         currentGoodCargoLabelMin.caption = "Min/Max: "..tRN(Entity():getCargoAmount(goodSelected)).."/"..tRN(math.floor(freeCargo/good.size))
     end
@@ -317,7 +297,7 @@ function updateCargoassignment()
         goodSelected = intermediateGoodsListboxList[selected]
         local _, good = next(tradingdata.intermediateGoods[goodSelected])
         local back,maxStock = Entity():invokeFunction(CFSCRIPT, "pGetMaxStock", goodSelected)
-        assignedCargoLabel.caption = "Assignable Cargo: ".. tRN(math.floor(freeCargo/good.size))
+        assignedCargoLabel.caption = "Unassigned Cargo: ".. tRN(math.floor(freeCargo/good.size))
         currentGoodCargoLabel.caption = goodSelected.." change from "..tRN(maxStock).." to: "
         currentGoodCargoLabelMin.caption = "Min/Max: "..tRN(Entity():getCargoAmount(goodSelected)).."/"..tRN(math.floor(freeCargo/good.size))
     end
@@ -326,7 +306,7 @@ function updateCargoassignment()
         goodSelected = boughtGoodsListboxList[selected]
         local _, good = next(tradingdata.boughtGoods[goodSelected])
         local back,maxStock = Entity():invokeFunction(CFSCRIPT, "pGetMaxStock", goodSelected)
-        assignedCargoLabel.caption = "Assignable Cargo: ".. tRN(math.floor(freeCargo/good.size))
+        assignedCargoLabel.caption = "Unassigned Cargo: ".. tRN(math.floor(freeCargo/good.size))
         currentGoodCargoLabel.caption = goodSelected.." change from "..tRN(maxStock).." to: "
         currentGoodCargoLabelMin.caption = "Min/Max: "..tRN(Entity():getCargoAmount(goodSelected)).."/"..tRN(math.floor(freeCargo/good.size))
     end
@@ -337,6 +317,7 @@ function updateGoodsOverview()
     if tradingdata == nil then return end
     goodsOverviewsListBoxEx:clear()
     goodsOverviewsListBoxEx:addRow("Good", "Stock", "Max. Stock", "Size", "Cargospace", "CurrentPrice")
+    local rows = {}
     for name, pair in pairs(tradingdata.soldGoods) do
         local _,good = next(pair)
         local stock, size = Entity():getCargoAmount(name), good.size
@@ -345,13 +326,13 @@ function updateGoodsOverview()
         factor = 1 - factor -- 1 to 0 where 0 is 'full stock'
         factor = factor * 0.4 -- 0.4 to 0
         factor = factor + 0.8 -- 1.2 to 0.8; 'no goods' to 'full'
-        goodsOverviewsListBoxEx:addRow(name%_t, tRN(stock), tRN(maxStock), tRN(size), tRN(maxStock*size), createMonetaryString(round(good.price * factor)))
+        rows[name%_t] = {tRN(stock), tRN(maxStock), tRN(size), tRN(maxStock*size), createMonetaryString(round(good.price * factor))}
     end
     for name, pair in pairs(tradingdata.intermediateGoods) do
         local _,good = next(pair)
         local stock, size = Entity():getCargoAmount(name), good.size
         local status, maxStock = Entity():invokeFunction(CFSCRIPT, "pGetMaxStock", name)
-        goodsOverviewsListBoxEx:addRow(name%_t, tRN(stock), tRN(maxStock), tRN(size) , tRN(maxStock*size), createMonetaryString(round(good.price, 2)))
+        rows[name%_t] = {tRN(stock), tRN(maxStock), tRN(size) , tRN(maxStock*size), createMonetaryString(round(good.price, 2))}
     end
     for name, pair in pairs(tradingdata.boughtGoods) do
         local _,good = next(pair)
@@ -359,9 +340,13 @@ function updateGoodsOverview()
         local status, maxStock = Entity():invokeFunction(CFSCRIPT, "pGetMaxStock", name)
         local factor = stock / maxStock
         factor = 1 - factor
-        factor = factor * 0.4 
-        factor = factor + 0.8 
-        goodsOverviewsListBoxEx:addRow(name%_t, tRN(stock), tRN(maxStock), tRN(size) , tRN(maxStock*size), createMonetaryString(round(good.price * factor)))
+        factor = factor * 0.4
+        factor = factor + 0.8
+        rows[name%_t] = {tRN(stock), tRN(maxStock), tRN(size) , tRN(maxStock*size), createMonetaryString(round(good.price * factor))}
+    end
+
+    for name, data in spairs(rows) do
+        goodsOverviewsListBoxEx:addRow(name, unpack(data))
     end
 end
 
@@ -370,9 +355,9 @@ function onIntermediateToSold()
     local boughtGoods, soldGoods, intermediateGoods = tradingdata.boughtGoods, tradingdata.soldGoods, tradingdata.intermediateGoods
     local numBought, numSold, numIntermediate = tradingdata.numBought, tradingdata.numSold, tradingdata.numIntermediate
     local list = {}
-    
+
     local index, good = next(intermediateGoods[goodSelected])
-    
+
     for name,pair in pairs(intermediateGoods) do
         local i, g = next(pair)
         if i > index then
@@ -381,10 +366,10 @@ function onIntermediateToSold()
     end
     intermediateGoods[goodSelected] = nil
     numIntermediate = numIntermediate - 1
-    
+
     numSold = numSold + 1
     soldGoods[good.name] = {[numSold] = good}
-    
+
     list.boughtGoods = boughtGoods
     list.numBought = numBought
     list.soldGoods = soldGoods
@@ -400,9 +385,9 @@ function onSoldToIntermediate()
     local boughtGoods, soldGoods, intermediateGoods = tradingdata.boughtGoods, tradingdata.soldGoods, tradingdata.intermediateGoods
     local numBought, numSold, numIntermediate = tradingdata.numBought, tradingdata.numSold, tradingdata.numIntermediate
     local list = {}
-    
+
     local index, good = next(soldGoods[goodSelected])
-    
+
     for name,pair in pairs(soldGoods) do
         local i, g = next(pair)
         if i > index then
@@ -411,10 +396,10 @@ function onSoldToIntermediate()
     end
     soldGoods[goodSelected] = nil
     numSold = numSold - 1
-    
+
     numIntermediate = numIntermediate + 1
     intermediateGoods[good.name] = {[numIntermediate] = good}
-    
+
     list.boughtGoods = boughtGoods
     list.numBought = numBought
     list.soldGoods = soldGoods
@@ -430,9 +415,9 @@ function onSoldToBought()
     local boughtGoods, soldGoods, intermediateGoods = tradingdata.boughtGoods, tradingdata.soldGoods, tradingdata.intermediateGoods
     local numBought, numSold, numIntermediate = tradingdata.numBought, tradingdata.numSold, tradingdata.numIntermediate
     local list = {}
-    
+
     local index, good = next(soldGoods[goodSelected])
-    
+
     for name,pair in pairs(soldGoods) do
         local i, g = next(pair)
         if i > index then
@@ -441,10 +426,10 @@ function onSoldToBought()
     end
     soldGoods[goodSelected] = nil
     numSold = numSold - 1
-    
+
     numBought = numBought + 1
     boughtGoods[good.name] = {[numBought] = good}
-    
+
     list.boughtGoods = boughtGoods
     list.numBought = numBought
     list.soldGoods = soldGoods
@@ -460,9 +445,9 @@ function onIntermediateToBought()
     local boughtGoods, soldGoods, intermediateGoods = tradingdata.boughtGoods, tradingdata.soldGoods, tradingdata.intermediateGoods
     local numBought, numSold, numIntermediate = tradingdata.numBought, tradingdata.numSold, tradingdata.numIntermediate
     local list = {}
-    
+
     local index, good = next(intermediateGoods[goodSelected])
-    
+
     for name,pair in pairs(intermediateGoods) do
         local i, g = next(pair)
         if i > index then
@@ -471,10 +456,10 @@ function onIntermediateToBought()
     end
     intermediateGoods[goodSelected] = nil
     numIntermediate = numIntermediate - 1
-    
+
     numBought = numBought + 1
     boughtGoods[good.name] = {[numBought] = good}
-    
+
     list.boughtGoods = boughtGoods
     list.numBought = numBought
     list.soldGoods = soldGoods
@@ -490,9 +475,8 @@ function onBoughtToIntermediate()
     local boughtGoods, soldGoods, intermediateGoods = tradingdata.boughtGoods, tradingdata.soldGoods, tradingdata.intermediateGoods
     local numBought, numSold, numIntermediate = tradingdata.numBought, tradingdata.numSold, tradingdata.numIntermediate
     local list = {}
-    
     local index, good = next(boughtGoods[goodSelected])
-    
+
     for name,pair in pairs(boughtGoods) do
         local i, g = next(pair)
         if i > index then
@@ -501,10 +485,10 @@ function onBoughtToIntermediate()
     end
     boughtGoods[goodSelected] = nil
     numBought = numBought - 1
-    
+
     numIntermediate = numIntermediate + 1
     intermediateGoods[good.name] = {[numIntermediate] = good}
-    
+
     list.boughtGoods = boughtGoods
     list.numBought = numBought
     list.soldGoods = soldGoods
@@ -520,9 +504,9 @@ function onBoughtToSold()
     local boughtGoods, soldGoods, intermediateGoods = tradingdata.boughtGoods, tradingdata.soldGoods, tradingdata.intermediateGoods
     local numBought, numSold, numIntermediate = tradingdata.numBought, tradingdata.numSold, tradingdata.numIntermediate
     local list = {}
-    
+
     local index, good = next(boughtGoods[goodSelected])
-    
+
     for name,pair in pairs(boughtGoods) do
         local i, g = next(pair)
         if i > index then
@@ -531,10 +515,10 @@ function onBoughtToSold()
     end
     boughtGoods[goodSelected] = nil
     numBought = numBought - 1
-    
+
     numSold = numSold + 1
     soldGoods[good.name] = {[numSold] = good}
-    
+
     list.boughtGoods = boughtGoods
     list.numBought = numBought
     list.soldGoods = soldGoods
@@ -562,7 +546,7 @@ function onCargoAssigned()
     if enteredNumber == nil then
         enteredNumber = 0
     end
-    
+
     local _, good = next(tradingdata.soldGoods[goodSelected] or {})
     if good == nil then
         _, good = next(tradingdata.boughtGoods[goodSelected]or {})
@@ -580,7 +564,17 @@ function onCargoAssigned()
         enteredNumber = m
     end
     local status, assignedamt = Entity():invokeFunction(CFSCRIPT, "passChangeInStockLimit", goodSelected, enteredNumber)
-    debugPrint(4, "onCargoAssigned", nil, status, assignedamt)
+    debugPrint(3, "onCargoAssigned", nil, goodSelected, status, assignedamt)
+    tradingdata.assignedCargoList[goodSelected] = assignedamt
     currentGoodTextBox.text = tostring(assignedamt)
     updateTradingdata()
+    updateCargoassignment()
+end
+
+function onCargoUnAssigned()
+    if goodSelected == nil then return end
+    local status = Entity():invokeFunction(CFSCRIPT, "unassignCargo", goodSelected)
+    tradingdata.assignedCargoList[goodSelected] = nil
+    updateTradingdata()
+    updateCargoassignment()
 end
