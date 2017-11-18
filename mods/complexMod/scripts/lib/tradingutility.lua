@@ -1,12 +1,11 @@
 package.path = package.path .. ";data/scripts/lib/?.lua"
 package.path = package.path .. ";data/scripts/?.lua"
-package.path = package.path .. ";mods/complexMod/config/?.lua"
 
 require ("utility")
 require ("randomext")
 require ("goods")
 local AsyncShipGenerator = require("asyncshipgenerator")
-local complexConfig = require ("config")
+local complexConfig = require ("mods/complexMod/config/complex")
 
 local TradingUtility = {}
 

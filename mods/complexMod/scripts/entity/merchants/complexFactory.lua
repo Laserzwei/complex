@@ -1,7 +1,8 @@
 package.path = package.path .. ";data/scripts/lib/?.lua"
 package.path = package.path .. ";mods/complexMod/scripts/lib/complextradingmanager.lua"
---package.path = package.path .. ";mods/complexMod/config/?.lua"
-complexConfig = dofile("mods/complexMod/config/config.lua")
+
+complexConfig = require ("mods/complexMod/config/complex")
+--complexConfig = dofile("mods/complexMod/config/complex.lua")
 require ("utility")
 require ("complextradingmanager")
 require ("goods")
@@ -16,7 +17,7 @@ CMSCRIPT = complexConfig.CMSCRIPT
 FSCRIPT = complexConfig.FSCRIPT
 local minDuration = complexConfig.minDuration
 local baseProductionCapacity = complexConfig.baseProductionCapacity
-debugPrint = config.debugPrint
+debugPrint = complexConfig.debugPrint
 
 subFactories = {}
 

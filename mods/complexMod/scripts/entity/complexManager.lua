@@ -1,6 +1,5 @@
 package.path = package.path .. ";data/scripts/lib/?.lua"
 package.path = package.path .. ";mods/complexMod/scripts/entity/ui/complexManager/?.lua"
---package.path = package.path .. ";mods/complexMod/config/?.lua"
 
 require ("utility")
 require ("faction")
@@ -15,17 +14,18 @@ require ("overviewTab")
 require ("tradingTab")
 mT = require ("managementTab")
 Dialog = require ("dialogutility")
-complexC = dofile("mods/complexMod/config/config.lua")
+complexConfig = require ("mods/complexMod/config/complex")
+--complexConfig = dofile("mods/complexMod/config/complex.lua")
 
-MOD = complexC.modName
-VERSION = complexC.version
-DEBUGLEVEL = complexC.debuglvl
-COMPLEXINTEGRITYCHECK = complexC.complexIntegrityCheck
-CFSCRIPT = complexC.CFSCRIPT
-CMSCRIPT = config.CMSCRIPT
-FSCRIPT = complexC.FSCRIPT
-baseProductionCapacity = complexC.baseProductionCapacity
-debugPrint = config.debugPrint
+MOD = complexConfig.modName
+VERSION = complexConfig.version
+DEBUGLEVEL = complexConfig.debuglvl
+COMPLEXINTEGRITYCHECK = complexConfig.complexIntegrityCheck
+CFSCRIPT = complexConfig.CFSCRIPT
+CMSCRIPT = complexConfig.CMSCRIPT
+FSCRIPT = complexConfig.FSCRIPT
+baseProductionCapacity = complexConfig.baseProductionCapacity
+debugPrint = complexConfig.debugPrint
 
 -- Menu items
 local window
@@ -469,7 +469,7 @@ function startConstruction(pConstructionData, connectorPipePlan, pIndexedComplex
     debugPrint(3, "sending indexedComplexData to Client:", indexedComplexData)
     synchComplexdata(indexedComplexData)
     Entity():invokeFunction(CFSCRIPT, "setComplexData", indexedComplexData)
-    Entity():setValue("complexChanged", 1)
+    Entity():setValue("complexConfighanged", 1)
 end
 
 function applyBoni()
