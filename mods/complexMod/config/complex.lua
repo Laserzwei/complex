@@ -1,7 +1,7 @@
 
 config = {}
 config.modName = "[CPX3]"
-config.version = "[0.90] "
+config.version = "[0.90b] "
 config.debuglvl = 2
 config.complexIntegrityCheck = 60
 config.CFSCRIPT = "mods/complexMod/scripts/entity/merchants/complexFactory.lua"
