@@ -6,6 +6,7 @@ require ("productions")
 require ("stringutility")
 require ("goods")
 require ("defaultscripts")
+require ("merchantutility")
 
 -- Don't remove or alter the following comment, it tells the game the namespace this script lives in. If you remove it, the script will break.
 -- namespace StationFounder
@@ -121,7 +122,11 @@ local stations =
     {
         name = "Turret Factory"%_t,
         tooltip = "Produces customized turrets and sells turret parts for high prices. The owner gets 20% of every transaction, as well as cheaper prices."%_t,
-        scripts = {{script = "data/scripts/entity/merchants/turretfactory.lua"}},
+        scripts = {
+            {script = "data/scripts/entity/merchants/turretfactory.lua"},
+            {script = "data/scripts/entity/merchants/turretfactoryseller.lua", args = {"Turret Factory"%_t, unpack(getTurretFactorySoldGoods())}}
+
+        },
         price = 30000000
     },
     {
@@ -328,7 +333,7 @@ function StationFounder.buildFactoryGui(levels, tab)
         for index, production in pairs(productions) do
 
             -- mines shouldn't be built just like that, they need asteroids
-            if not string.match(production.factory, "Mine") then
+            if not string.match(production.factory, "Mine") and not string.match(production.factory, "Oil Rig") then
 
                 -- read data from production
                 local result = goods[production.results[1].name];
@@ -600,15 +605,14 @@ function StationFounder.transformToStation()
 
     -- create the station
     -- get plan of ship
-    local plan = ship:getPlan()
+    local plan = ship:getMovePlan()
     local crew = ship.crew
 
     -- create station
     local desc = StationDescriptor()
     desc.factionIndex = ship.factionIndex
-    desc:setPlan(plan)
+    desc:setMovePlan(plan)
     desc.position = ship.position
-    desc:addScript("data/scripts/entity/crewboard.lua")
     desc.name = ship.name
 
     ship.name = ""
