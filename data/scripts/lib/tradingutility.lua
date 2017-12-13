@@ -251,5 +251,5 @@ if not status then
     print("Failed to load tradermodule of ComplexMod", error)
     return TradingUtility
 else
-    return error
+    return TradingUtility
 end

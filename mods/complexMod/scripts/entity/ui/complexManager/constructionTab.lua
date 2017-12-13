@@ -277,8 +277,10 @@ function updatePlan()
     debugPrint(3,"update ", nil, currentNodeIndex)
     if complexData[currentNodeIndex] == nil then
         debugPrint(3, "complexData nil on Complex", nil, Entity().index)
-        currentNodeIndex = newPlan.rootIndex
-        currentNodeOffset = vec3(0,0,0)
+        currentNodeIndex, subfac = next(complexData)
+        currentNodeIndex = currentNodeIndex or newPlan.rootIndex
+        subfac = subfac or {nodeOffset = vec3(0,0,0)}
+        currentNodeOffset = subfac.nodeOffset
         targetCoreBlockIndex = nil
         targetCoreBlockCoord = vec3(0,0,0)
     end
@@ -753,12 +755,6 @@ function onConstructionButtonPress()
     local data = {["name"] = name, ["relativeCoords"] = targetCoreBlockCoord, ["nodeOffset"] = nodeOffset, ["factoryTyp"] = factoryData.production, ["size"] = factoryData.maxNumProductions}
     local root = Entity():getPlan().rootIndex
     debugPrint(3, "roottable", complexData, root, targetCoreBlockIndex)
-    local basefab = {   ["name"] = complexData[root].name,
-                        ["relativeCoords"] = complexData[root].relativeCoords,
-                        ["nodeOffset"] = complexData[root].nodeOffset,
-                        ["factoryTyp"] = complexData[root].factoryTyp,
-                        ["size"] = complexData[root].size,
-                        ["factoryBlockId"] = root}
 
     complexData[targetCoreBlockIndex] = data
     data.factoryBlockId = targetCoreBlockIndex
@@ -770,6 +766,12 @@ function onConstructionButtonPress()
     if count > 2 then
         local status, data = Entity():invokeFunction(CMSCRIPT,"cmOnConstructionButtonPress",constructionData, addedPlan, data)
     else --initializing
+        local basefab = {   ["name"] = complexData[root].name,
+                            ["relativeCoords"] = complexData[root].relativeCoords,
+                            ["nodeOffset"] = complexData[root].nodeOffset,
+                            ["factoryTyp"] = complexData[root].factoryTyp,
+                            ["size"] = complexData[root].size,
+                            ["factoryBlockId"] = root}
         local status, data = Entity():invokeFunction(CMSCRIPT,"cmOnConstructionButtonPress",constructionData, addedPlan, data, basefab)
     end
     debugPrint(3,"build pressed", nil, currentNodeIndex)

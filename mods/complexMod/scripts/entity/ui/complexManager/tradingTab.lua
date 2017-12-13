@@ -16,7 +16,7 @@ goodListsSelected.boughtGoodsListbox = -1
 local goodSelected = nil
 --Middle
 local assignedCargoLabel
-local currentGoodCargoLabel, currentGoodTextBox, currentGoodAcceptButton, currentGoodCargoLabelMin
+local currentGoodCargoLabel, currentGoodTextBox, currentGoodAcceptButton, currentGoodResetButton, currentGoodCargoLabelMin
 --Bottom
 local goodsOverviewsListBoxEx
 
@@ -71,37 +71,37 @@ function createTradingUI(tabWindow)
     local x, y = vlsplits:partition(0).lower.x, hsplit2.top.lower.y + 10
 
     assignedCargoLabel = container:createLabel(vec2(x,y), "Assignable Cargo: "..tostring("0") ,18)
-    y = y + 35
+    y = y + 32
 
     currentGoodCargoLabel = container:createLabel(vec2(x,y),"Select a Good from above", 18)
-    y = y + 35
+    y = y + 32
 
     local textboxSize = 200
     local assignButtonSize = 120
     local unAssignButtonSize = 120
 
-    local rect = Rect(x, y, x + textboxSize, y+35)
+    local rect = Rect(x, y, x + textboxSize, y+32)
     currentGoodTextBox = container:createTextBox(rect, "onAssignAmountChanged")
     currentGoodTextBox.text = "0"
     currentGoodTextBox.allowedCharacters = "0123456789"
     currentGoodTextBox.clearOnClick = 0
     x = x + textboxSize + 4
 
-    rect = Rect(x, y, x + assignButtonSize, y+35)
+    rect = Rect(x, y, x + assignButtonSize, y+32)
     currentGoodAcceptButton = container:createButton(rect, "assign", "onCargoAssigned")
     x = x + assignButtonSize + 4
 
-    rect = Rect(x, y, x + unAssignButtonSize, y+35)
-    currentGoodAcceptButton = container:createButton(rect, "unassign", "onCargoUnAssigned")
+    rect = Rect(x, y, x + unAssignButtonSize, y+32)
+    currentGoodResetButton = container:createButton(rect, "unassign", "onCargoUnAssigned")
     x = x + unAssignButtonSize + 4
 
     currentGoodCargoLabelMin = container:createLabel(vec2(x,y+5), "Min/Max: 0/0",18)
 
-    goodsOverviewsListBoxEx = container:createListBoxEx(hsplit2.bottom )
+    local goodListRect = Rect(vlsplits:partition(0).lower.x, y+55, hsplit2.bottom.upper.x, hsplit2.bottom.upper.y)
+    goodsOverviewsListBoxEx = container:createListBoxEx(goodListRect)
     goodsOverviewsListBoxEx.columns = 6
     goodsOverviewsListBoxEx:addRow("Good", "Stock", "Max. Stock", "Size", "Cargospace", "CurrentPrice")
 
-    container:createFrame(hsplit2.bottom)
 end
 
 function deactivateAllListButtons()
@@ -135,10 +135,14 @@ function updateTT(timeStep)                                               --chec
     if checkEntityInteractionPermissions(Entity(), unpack(mT.permissions[3].requiredPermissions)) then
         currentGoodAcceptButton.active = true
         currentGoodAcceptButton.tooltip = nil
+        currentGoodResetButton.active = true
+        currentGoodResetButton.tooltip = nil
         removeTooltips()
     else
         currentGoodAcceptButton.active = false
         currentGoodAcceptButton.tooltip = "You need Alliance permission!"
+        currentGoodResetButton.active = false
+        currentGoodResetButton.tooltip = "You need Alliance permission!"
         deactivateAllListButtons()
         return
     end
