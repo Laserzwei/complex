@@ -84,7 +84,7 @@ function createConstructionUI(tabWindow)
     setDirButtonsActive()
 
     -- create advanced check boxes
-    advancedCheckbox = container:createCheckBox(Rect(), "Advanced Building Opotions"%_t, "onAdvancedChecked")
+    advancedCheckbox = container:createCheckBox(Rect(), "Advanced Building Options"%_t, "onAdvancedChecked")
     lister:placeElementCenter(advancedCheckbox)
     lister.padding = 20
 
