@@ -246,6 +246,7 @@ function TradingUtility.spawnTrader(trade, namespace, immediateTransaction)
         end
     end
 end
+
 local status, error = pcall(require, "mods/complexMod/scripts/lib/tradingutility")
 if not status then
     print("Failed to load tradermodule of ComplexMod", error)
@@ -253,3 +254,5 @@ if not status then
 else
     return error
 end
+
+return TradingUtility
