@@ -6,6 +6,7 @@ require ("productions")
 require ("stringutility")
 require ("goods")
 require ("defaultscripts")
+require ("merchantutility")
 
 -- Don't remove or alter the following comment, it tells the game the namespace this script lives in. If you remove it, the script will break.
 -- namespace StationFounder
@@ -121,7 +122,11 @@ local stations =
     {
         name = "Turret Factory"%_t,
         tooltip = "Produces customized turrets and sells turret parts for high prices. The owner gets 20% of every transaction, as well as cheaper prices."%_t,
-        scripts = {{script = "data/scripts/entity/merchants/turretfactory.lua"}},
+        scripts = {
+            {script = "data/scripts/entity/merchants/turretfactory.lua"},
+            {script = "data/scripts/entity/merchants/turretfactoryseller.lua", args = {"Turret Factory"%_t, unpack(getTurretFactorySoldGoods())}}
+
+        },
         price = 30000000
     },
     {
@@ -328,7 +333,7 @@ function StationFounder.buildFactoryGui(levels, tab)
         for index, production in pairs(productions) do
 
             -- mines shouldn't be built just like that, they need asteroids
-            if not string.match(production.factory, "Mine") then
+            if not string.match(production.factory, "Mine") and not string.match(production.factory, "Oil Rig") then
 
                 -- read data from production
                 local result = goods[production.results[1].name];
@@ -408,7 +413,7 @@ function StationFounder.buildFactoryGui(levels, tab)
         end
         label.tooltip = tooltip
 
-        local costs = StationFounder.getFactoryCost(production)
+        local costs = getFactoryCost(production)
 
         local label = frame:createLabel(vsplit.right.lower, createMonetaryString(costs) .. " Cr"%_t, 14)
         label.size = vec2(vsplit.right.size.x, vsplit.right.size.y)
@@ -486,7 +491,7 @@ function StationFounder.foundFactory(goodName, productionIndex)
     end
 
     -- check if player has enough money
-    local cost = StationFounder.getFactoryCost(production)
+    local cost = getFactoryCost(production)
 
     local canPay, msg, args = buyer:canPay(cost)
     if not canPay then
@@ -600,15 +605,14 @@ function StationFounder.transformToStation()
 
     -- create the station
     -- get plan of ship
-    local plan = ship:getPlan()
+    local plan = ship:getMovePlan()
     local crew = ship.crew
 
     -- create station
     local desc = StationDescriptor()
     desc.factionIndex = ship.factionIndex
-    desc:setPlan(plan)
+    desc:setMovePlan(plan)
     desc.position = ship.position
-    desc:addScript("data/scripts/entity/crewboard.lua")
     desc.name = ship.name
 
     ship.name = ""
@@ -636,29 +640,6 @@ function StationFounder.transformToStation()
     return station
 end
 
-function StationFounder.getFactoryCost(production)
-
-    -- calculate the difference between the value of ingredients and results
-    local ingredientValue = 0
-    local resultValue = 0
-
-    for _, ingredient in pairs(production.ingredients) do
-        local good = goods[ingredient.name]
-        ingredientValue = ingredientValue + good.price * ingredient.amount
-    end
-
-    for _, result in pairs(production.results) do
-        local good = goods[result.name]
-        resultValue = resultValue + good.price * result.amount
-    end
-
-    local diff = resultValue - ingredientValue
-
-    local costs = 3000000 -- 3 mio minimum for a factory
-    costs = costs + diff * 4500
-    return costs
-end
-
 
 function StationFounder.getStationCost(station)
     return station.price or station:getPrice()
@@ -669,3 +650,4 @@ end
 function StationFounder.onCloseWindow()
     warnWindow:hide()
 end
+
