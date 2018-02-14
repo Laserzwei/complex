@@ -26,7 +26,7 @@ local scripts =
     "/biotope.lua"
 }
 if complexConfig.enableNPCTrading then
-    table.insert(scripts, "/complexFactory.lua")
+    table.insert(scripts, "mods/complexMod/scripts/entity/merchants/complexFactory.lua")
 end
 
 local TradeType = makeReadOnlyTable(
