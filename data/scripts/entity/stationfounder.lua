@@ -69,6 +69,8 @@ local stations =
             {script = "data/scripts/entity/merchants/equipmentdock.lua"},
             {script = "data/scripts/entity/merchants/turretmerchant.lua"},
             {script = "data/scripts/entity/merchants/fightermerchant.lua"},
+            {script = "data/scripts/entity/merchants/torpedomerchant.lua"},
+            {script = "data/scripts/entity/merchants/utilitymerchant.lua"},
             {script = "data/scripts/entity/merchants/consumer.lua", args = {EquipmentDockConsumerArguments()}},
         },
         getPrice = function()
@@ -249,6 +251,7 @@ function StationFounder.initUI()
     warnWindowLabel = warnWindow:createLabel(ihsplit.bottom.lower, "Text"%_t, 14)
     warnWindowLabel.size = ihsplit.bottom.size
     warnWindowLabel:setTopAligned();
+    warnWindowLabel.wordBreak = true
 
 
     local vsplit = UIVerticalSplitter(hsplit.bottom, 10, 0, 0.5)
@@ -331,7 +334,6 @@ function StationFounder.buildFactoryGui(levels, tab)
     for _, productions in pairs(productionsByGood) do
 
         for index, production in pairs(productions) do
-
             -- mines shouldn't be built just like that, they need asteroids
             if not string.match(production.factory, "Mine") and not string.match(production.factory, "Oil Rig") then
 
@@ -356,6 +358,10 @@ function StationFounder.buildFactoryGui(levels, tab)
         local nameB = b.production.factory
         if b.production.fixedName == false then
             nameB = b.production.results[1].name%_t .. " " .. nameB%_t
+        end
+
+        if nameA == nameB then
+            return a.production.index < b.production.index
         end
 
         return nameA < nameB
@@ -439,11 +445,6 @@ function StationFounder.onFoundFactoryButtonPress(button)
 
     warnWindow:show()
 end
-
-function StationFounder.onConfirmTransformationButtonPress(button)
-    invokeServerFunction("foundFactory", selectedProduction.goodName, selectedProduction.index)
-end
-
 
 function StationFounder.onFoundStationButtonPress(button)
     selectedStation = stationsByButton[button.index]
@@ -620,6 +621,11 @@ function StationFounder.transformToStation()
     local station = Sector():createEntity(desc)
 
     AddDefaultStationScripts(station)
+
+    -- move player from ship to station
+    if player.craftIndex == ship.index then
+        player.craftIndex = station.index
+    end
 
     -- this will delete the ship and deactivate the collision detection so the ship doesn't interfere with the new station
     ship:setPlan(BlockPlan())
