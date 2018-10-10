@@ -7,7 +7,7 @@ require ("randomext")
 require ("goods")
 local AsyncShipGenerator = require("asyncshipgenerator")
 
-local TradingUtility = {}
+TradingUtility = {}
 
 local scripts =
 {
@@ -66,6 +66,7 @@ end
 function TradingUtility.getEntityBuysGood(entity, name)
     local scripts = TradingUtility.getTradeableScripts()
     for _, script in pairs(scripts) do
+        print(script)
         local callOk, good = entity:invokeFunction(script, "getBoughtGoodByName", name)
         if callOk == 0 and good then
             return script
@@ -76,6 +77,7 @@ end
 function TradingUtility.getEntitySellsGood(entity, name)
     local scripts = TradingUtility.getTradeableScripts()
     for _, script in pairs(scripts) do
+        print(script)
         local callOk, good = entity:invokeFunction(script, "getSoldGoodByName", name)
         if callOk == 0 and good then
             return script
@@ -87,57 +89,61 @@ function TradingUtility.getBuyableAndSellableGoods(station, sellable, buyable)
     sellable = sellable or {}
     buyable = buyable or {}
 
-    local scripts = TradingUtility.getTradeableScripts()
-    for _, script in pairs(scripts) do
+    local faction = Faction()
+    if faction then
+        local scripts = TradingUtility.getTradeableScripts()
+        for _, script in pairs(scripts) do
+            print(script)
 
-        local results = {station:invokeFunction(script, "getBoughtGoods")}
-        local callResult = results[1]
+            local results = {station:invokeFunction(script, "getBoughtGoods")}
+            local callResult = results[1]
 
-        if callResult == 0 then -- call was successful, the station buys goods
+            if callResult == 0 then -- call was successful, the station buys goods
 
-            for i = 2, #results do
-                local name = results[i];
+                for i = 2, #results do
+                    local name = results[i];
 
-                local callOk, good = station:invokeFunction(script, "getGoodByName", name)
-                if callOk ~= 0 then print("getGoodByName failed: " .. callOk) end
+                    local callOk, good = station:invokeFunction(script, "getGoodByName", name)
+                    if callOk ~= 0 then print("getGoodByName failed: " .. callOk) end
 
-                local callOk, stock, maxStock = station:invokeFunction(script, "getStock", name)
-                if callOk ~= 0 then print("getStock failed" .. callOk) end
+                    local callOk, stock, maxStock = station:invokeFunction(script, "getStock", name)
+                    if callOk ~= 0 then print("getStock failed" .. callOk) end
 
-                local callOk, price = station:invokeFunction(script, "getBuyPrice", name, Faction().index)
-                if callOk ~= 0 then print("getBuyPrice failed" .. callOk) end
+                    local callOk, price = station:invokeFunction(script, "getBuyPrice", name, Faction().index)
+                    if callOk ~= 0 then print("getBuyPrice failed" .. callOk) end
 
-                if maxStock > 0 then
-                    table.insert(sellable, {good = good, price = price, stock = stock, maxStock = maxStock, station = station.title, titleArgs = station:getTitleArguments(), stationIndex = station.index, coords = vec2(Sector():getCoordinates())})
+                    if maxStock > 0 then
+                        table.insert(sellable, {good = good, price = price, stock = stock, maxStock = maxStock, station = station.title, titleArgs = station:getTitleArguments(), stationIndex = station.index, coords = vec2(Sector():getCoordinates())})
+                    end
                 end
+            else
+                -- print("getBoughtGoods failed " .. callResult)
             end
-        else
-            -- print("getBoughtGoods failed " .. callResult)
-        end
 
-        local results = {station:invokeFunction(script, "getSoldGoods")}
-        local callResult = results[1]
+            local results = {station:invokeFunction(script, "getSoldGoods")}
+            local callResult = results[1]
 
-        if callResult == 0 then -- call was successful, the station sells goods
+            if callResult == 0 then -- call was successful, the station sells goods
 
-            for i = 2, #results do
-                local name = results[i];
+                for i = 2, #results do
+                    local name = results[i];
 
-                local callOk, good = station:invokeFunction(script, "getGoodByName", name)
-                if callOk ~= 0 then print("getGoodByName failed: " .. callOk) end
+                    local callOk, good = station:invokeFunction(script, "getGoodByName", name)
+                    if callOk ~= 0 then print("getGoodByName failed: " .. callOk) end
 
-                local callOk, stock, maxStock = station:invokeFunction(script, "getStock", name)
-                if callOk ~= 0 then print("getStock failed" .. callOk) end
+                    local callOk, stock, maxStock = station:invokeFunction(script, "getStock", name)
+                    if callOk ~= 0 then print("getStock failed" .. callOk) end
 
-                local callOk, price = station:invokeFunction(script, "getSellPrice", name, Faction().index)
-                if callOk ~= 0 then print("getSellPrice failed" .. callOk) end
+                    local callOk, price = station:invokeFunction(script, "getSellPrice", name, Faction().index)
+                    if callOk ~= 0 then print("getSellPrice failed" .. callOk) end
 
-                if maxStock > 0 then
-                    table.insert(buyable, {good = good, price = price, stock = stock, maxStock = maxStock, station = station.title, titleArgs = station:getTitleArguments(), stationIndex = station.index, coords = vec2(Sector():getCoordinates())})
+                    if maxStock > 0 then
+                        table.insert(buyable, {good = good, price = price, stock = stock, maxStock = maxStock, station = station.title, titleArgs = station:getTitleArguments(), stationIndex = station.index, coords = vec2(Sector():getCoordinates())})
+                    end
                 end
+            else
+                -- print("getSoldGoods failed " .. callResult)
             end
-        else
-            -- print("getSoldGoods failed " .. callResult)
         end
     end
 
@@ -210,6 +216,11 @@ function TradingUtility.spawnTrader(trade, namespace, immediateTransaction)
         local matrix = MatrixLookUpPosition(normalize(-pos), vec3(0, 1, 0), pos)
 
         local onGenerated = function (ship)
+            if not valid(trade.station) then
+                Sector():deleteEntity(ship)
+                return
+            end
+
             ship:setValue("trade_partner", trade.station.id.string)
 
             -- if the trader buys, he has no cargo, if he sells, add cargo
@@ -246,10 +257,12 @@ function TradingUtility.spawnTrader(trade, namespace, immediateTransaction)
         end
     end
 end
-local status, error = pcall(require, "mods/complexMod/scripts/lib/tradingutility")
+
+local status, retVar = pcall(require, "mods/complexMod/scripts/lib/tradingutility")
 if not status then
+    local error = retVar
     print("Failed to load tradermodule of ComplexMod", error)
     return TradingUtility
 else
-    return TradingUtility
+    return retVar
 end

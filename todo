@@ -1,5 +1,0 @@
--- renew backend
--- improve overviewTab, only one factory of each type, show total #parallel processes, show subfacs in overview pane
--- change the way factories get upgraded
--- reduce data send
--- use Entity():waitUntilAsyncWorkFinished() 

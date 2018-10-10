@@ -69,6 +69,8 @@ local stations =
             {script = "data/scripts/entity/merchants/equipmentdock.lua"},
             {script = "data/scripts/entity/merchants/turretmerchant.lua"},
             {script = "data/scripts/entity/merchants/fightermerchant.lua"},
+            {script = "data/scripts/entity/merchants/torpedomerchant.lua"},
+            {script = "data/scripts/entity/merchants/utilitymerchant.lua"},
             {script = "data/scripts/entity/merchants/consumer.lua", args = {EquipmentDockConsumerArguments()}},
         },
         getPrice = function()
@@ -249,6 +251,7 @@ function StationFounder.initUI()
     warnWindowLabel = warnWindow:createLabel(ihsplit.bottom.lower, "Text"%_t, 14)
     warnWindowLabel.size = ihsplit.bottom.size
     warnWindowLabel:setTopAligned();
+    warnWindowLabel.wordBreak = true
 
 
     local vsplit = UIVerticalSplitter(hsplit.bottom, 10, 0, 0.5)
@@ -331,7 +334,6 @@ function StationFounder.buildFactoryGui(levels, tab)
     for _, productions in pairs(productionsByGood) do
 
         for index, production in pairs(productions) do
-
             -- mines shouldn't be built just like that, they need asteroids
             if not string.match(production.factory, "Mine") and not string.match(production.factory, "Oil Rig") then
 
@@ -356,6 +358,10 @@ function StationFounder.buildFactoryGui(levels, tab)
         local nameB = b.production.factory
         if b.production.fixedName == false then
             nameB = b.production.results[1].name%_t .. " " .. nameB%_t
+        end
+
+        if nameA == nameB then
+            return a.production.index < b.production.index
         end
 
         return nameA < nameB
@@ -440,11 +446,6 @@ function StationFounder.onFoundFactoryButtonPress(button)
     warnWindow:show()
 end
 
-function StationFounder.onConfirmTransformationButtonPress(button)
-    invokeServerFunction("foundFactory", selectedProduction.goodName, selectedProduction.index)
-end
-
-
 function StationFounder.onFoundStationButtonPress(button)
     selectedStation = stationsByButton[button.index]
     selectedProduction = nil
@@ -473,6 +474,7 @@ function StationFounder.onCancelTransformationButtonPress(button)
 end
 
 function StationFounder.foundFactory(goodName, productionIndex)
+    if anynils(goodName, productionIndex) then return end
 
     local buyer, ship, player = checkEntityInteractionPermissions(Entity(), AlliancePrivilege.FoundStations)
     if not buyer then return end
@@ -482,7 +484,7 @@ function StationFounder.foundFactory(goodName, productionIndex)
         player:sendChatMessage("Server"%_t, 1, "Maximum station limit per faction (%s) of this server reached!"%_t, settings.maximumPlayerStations)
         return
     end
-
+    print("hi1", goodName, productionIndex)
     local production = productionsByGood[goodName][productionIndex]
 
     if production == nil then
@@ -517,11 +519,12 @@ function StationFounder.foundFactory(goodName, productionIndex)
     for good, amount in pairs(ship:getCargos()) do
         station:addCargo(good, amount)
     end
-    package.path = package.path .. ";mods/complexMod/scripts/entity/complexManager.lua"
-    station:addScript("mods/complexMod/scripts/entity/complexManager.lua")
+
 end
 
 function StationFounder.foundStation(selected)
+
+    if anynils(selected) then return end
 
     local buyer, ship, player = checkEntityInteractionPermissions(Entity(), AlliancePrivilege.FoundStations)
     if not buyer then return end
@@ -621,6 +624,11 @@ function StationFounder.transformToStation()
 
     AddDefaultStationScripts(station)
 
+    -- move player from ship to station
+    if player.craftIndex == ship.index then
+        player.craftIndex = station.index
+    end
+
     -- this will delete the ship and deactivate the collision detection so the ship doesn't interfere with the new station
     ship:setPlan(BlockPlan())
 
@@ -649,4 +657,14 @@ end
 -- this function gets called every time the window is closed on the client
 function StationFounder.onCloseWindow()
     warnWindow:hide()
+end
+
+
+local status, retVar = pcall(require, "mods/complexMod/scripts/entity/stationfounder")
+if not status then
+    local error = retVar
+    print("Failed to load stationfounder hook of ComplexMod", error)
+    return StationFounder
+else
+    return retVar
 end

@@ -329,7 +329,7 @@ function updateGoodsOverview()
         local factor = stock / maxStock -- 0 to 1 where 1 is 'full stock'
         factor = 1 - factor -- 1 to 0 where 0 is 'full stock'
         factor = factor * 0.4 -- 0.4 to 0
-        factor = factor + 0.8 -- 1.2 to 0.8; 'no goods' to 'full'
+        factor = factor + 0.8 -- 1.2 to 0.8 'no goods' to 'full'
         rows[name%_t] = {tRN(stock), tRN(maxStock), tRN(size), tRN(maxStock*size), createMonetaryString(round(good.price * factor))}
     end
     for name, pair in pairs(tradingdata.intermediateGoods) do

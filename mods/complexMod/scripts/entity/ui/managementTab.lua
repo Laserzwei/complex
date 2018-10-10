@@ -49,7 +49,6 @@ managementTab.uiInitialized = false
 local windowContainer
 local firstCheckboxIndex = 0
 
-
 local stationNameTextbox, stationNameButton
 local stationTitleTextbox, stationTitleButton
 
@@ -58,9 +57,9 @@ local sellButton, transferButton
 local warnWindow, warnWindowLabel
 
 function managementTab.initialize()
-  if onServer() then
-    managementTab.getPermissions()
-  end
+    if onServer() then
+        managementTab.getPermissions()
+    end
 end
 
 function managementTab.createManagementUI(tabWindow)
@@ -100,10 +99,8 @@ function managementTab.createManagementUI(tabWindow)
     end
     y = y + 40
 
-    if not checkEntityInteractionPermissions(Entity(), AlliancePrivilege.EditRanks) then
-        for i, cb in pairs(managementTab.checkBoxList) do
-            cb.active = false
-        end
+    for i, cb in pairs(managementTab.checkBoxList) do
+        cb.active = false
     end
 
     local textboxSize = vec2(200,35)
@@ -163,11 +160,11 @@ function managementTab.createManagementUI(tabWindow)
     label.size = ihsplit.top.size
     label.bold = true
     label.color = ColorRGB(0.8, 0.8, 0)
-    label:setTopAligned();
+    label:setTopAligned()
 
     warnWindowLabel = warnWindow:createLabel(ihsplit.bottom.lower, "Text"%_t, 14)
     warnWindowLabel.size = ihsplit.bottom.size
-    warnWindowLabel:setTopAligned();
+    warnWindowLabel:setTopAligned()
 
 
     local vsplit = UIVerticalSplitter(hsplit.bottom, 10, 0, 0.5)
@@ -176,7 +173,6 @@ function managementTab.createManagementUI(tabWindow)
 
 
     managementTab.getPermissions()
-    client_receivePermissions(managementTab.permissions)
 end
 
 function onConfirmSellButtonPress()

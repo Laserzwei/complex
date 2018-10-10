@@ -1,23 +1,25 @@
 package.path = package.path .. ";data/scripts/lib/?.lua"
-package.path = package.path .. ";mods/complexMod/scripts/lib/complextradingmanager.lua"
 
-complexConfig = require ("mods/complexMod/config/complex")
---complexConfig = dofile("mods/complexMod/config/complex.lua")
 require ("utility")
-require ("complextradingmanager")
 require ("goods")
 require ("productions")
 require ("stringutility")
+require ("mods.complexMod.scripts.lib.complexLib")
+local config = require ("mods.complexMod.config.complex")
 
-MOD = complexConfig.modName
-VERSION = complexConfig.version
-DEBUGLEVEL = complexConfig.debuglvl
-CFSCRIPT = complexConfig.CFSCRIPT
-CMSCRIPT = complexConfig.CMSCRIPT
-FSCRIPT = complexConfig.FSCRIPT
-local minDuration = complexConfig.minDuration
-local baseProductionCapacity = complexConfig.baseProductionCapacity
-debugPrint = complexConfig.debugPrint
+local TradingUtility = require ("data.scripts.lib.tradingutility")
+local extenedTradingmanager =  require ("mods.complexMod.scripts.lib.extendedTradingmanager")
+local syncLib = require ("mods.complexMod.scripts.lib.syncLib")
+
+MOD = config.modName
+VERSION = config.version
+DEBUGLEVEL = config.debuglvl
+CFSCRIPT = config.CFSCRIPT
+CMSCRIPT = config.CMSCRIPT
+FSCRIPT = config.FSCRIPT
+local minDuration = config.minDuration
+local baseProductionCapacity = config.baseProductionCapacity
+debugPrint = config.debugPrint
 
 subFactories = {}
 
@@ -39,7 +41,7 @@ function restore(data)
             subFactories[id] = dat
         end
         currentProductionCycle = data.currentProductionCycle or {}
-        restoreTradingGoods(data.tradingData)
+        --trader.restoreTradingGoods(data.tradingData)
     end
 end
 
@@ -53,7 +55,7 @@ function secure()
     end
     data.subFactories = savedata
     data.currentProductionCycle = currentProductionCycle
-    data.tradingData = secureTradingGoods()
+    data.tradingData = trader.secureTradingGoods()
     return data
 end
 
@@ -61,25 +63,8 @@ function getComplexData2()--if the Manager gets corrupted this is a fallback
     return subFactories
 end
 
-function vec3ToTable(vec)
-    local retTable = {x = vec.x, y = vec.y, z = vec.z}
-    return retTable
-end
-
-function tableToVec3(tab)
-    local vec = vec3(tab.x, tab.y, tab.z)
-    return vec
-end
-
 -- this function gets called on creation of the entity the script is attached to, on client and server
 function initialize()
-
-    if onServer() then
-
-    else
-        requestGoods()
-        --sync()
-    end
 
 end
 
@@ -159,8 +144,8 @@ function initUI()
     local size = vec2(950, 650)
 
     local menu = ScriptUI()
-    local window = menu:createWindow(Rect(res * 0.5 - size * 0.5, res * 0.5 + size * 0.5));
-    menu:registerWindow(window, "Buy/Sell Goods"%_t);
+    local window = menu:createWindow(Rect(res * 0.5 - size * 0.5, res * 0.5 + size * 0.5))
+    menu:registerWindow(window, "Buy/Sell Goods"%_t)
 
     window.caption = "[Complex] "%_t..Entity().name
     window.showCloseButton = 1
@@ -204,26 +189,14 @@ function onShowWindow()
 
 end
 
-function setTradingLists(lists)
-    if onClient() then
-        debugPrint(3, "setTradingLists Client")
-        synchTradingLists(lists.boughtGoods, lists.soldGoods, lists.intermediateGoods)
-    else
-        debugPrint(0, "setTradingLists on Server not allowed!")
-    end
-end
-
-function pGetMaxStock(goodName)
-    return getMaxStock(goodName)
-end
 
 -- this functions gets called when the indicator of the station is rendered on the client
 function renderUIIndicator(px, py, size)
     if currentProductionCycle.productionrequirement == nil or currentProductionCycle.processedP == nil then
          return
     end
-    x = px - size / 2;
-    y = py + size / 2;
+    x = px - size / 2
+    y = py + size / 2
 
     local index = 1
 
@@ -234,7 +207,7 @@ function renderUIIndicator(px, py, size)
     sx = size + 2
     sy = 4
 
-    drawRect(Rect(dx, dy, sx + dx, sy + dy), ColorRGB(0, 0, 0));
+    drawRect(Rect(dx, dy, sx + dx, sy + dy), ColorRGB(0, 0, 0))
 
     -- inner rect
     dx = dx + 1
@@ -245,7 +218,7 @@ function renderUIIndicator(px, py, size)
 
     sx = sx * math.min(1.0,currentProductionCycle.processedP / currentProductionCycle.productionrequirement)
 
-    drawRect(Rect(dx, dy, sx + dx, sy + dy), ColorRGB(0.66, 0.66, 1.0));
+    drawRect(Rect(dx, dy, sx + dx, sy + dy), ColorRGB(0.66, 0.66, 1.0))
 
 end
 
@@ -253,11 +226,6 @@ function updateProcessedP(totalP, procP)
     currentProductionCycle.productionrequirement = totalP
     currentProductionCycle.processedP = procP
     currentlyProducing = true
-end
-
-function passChangeInStockLimit(goodName, amount)
-    local status = assignCargo(goodName, amount)
-    return status
 end
 
 function startNextProductionCycle(isProducing)

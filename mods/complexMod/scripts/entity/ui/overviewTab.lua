@@ -531,23 +531,6 @@ function tRN(number)
     return formatted
 end
 
-function getFactoryClassBySize(factorySize)
-    local size = ""
-    if factorySize == 2 then size =      "Class II"
-    elseif factorySize == 3 then size =  "Class III"
-    elseif factorySize == 4 then size =  "Class IV"
-    elseif factorySize == 5 then size =  "Class V"
-    elseif factorySize == 6 then size =  "Class VI"
-    elseif factorySize == 7 then size =  "Class VII"
-    elseif factorySize == 8 then size =  "Class VIII"
-    elseif factorySize == 9 then size =  "Class IX"
-    elseif factorySize == 10 then size = "Class X"
-    else debugPrint(1, "got wrong size: H ".. tostring(factorySize))
-    end
-    return size
-end
-
-
 function getEnergycostForFactory(production, size)
     if size > 10 or size < 0 then return -1 end
     if size <=2 then return 0 end
