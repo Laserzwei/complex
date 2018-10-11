@@ -1,3 +1,6 @@
+[0.19.0]
+- new version naming to include game-version
+
 [0.90]
 - Updated to 0.15
 - using production from assemblers the same way factories do

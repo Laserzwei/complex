@@ -192,6 +192,18 @@ end
 function cTRenderUI()
     if factorySelectionWindow.visible == false then
         local offset = 10
+        local numBlocks = (addedPlan and addedPlan.numBlocks or 0) + Entity():getPlan().numBlocks
+        local maxBlocks = config.maxBlockCount
+        if maxBlocks == -1 then
+            drawText(numBlocks.."/".."unlimited"%_t.." Blocks", planDisplayer.lower.x + 10, planDisplayer.lower.y + offset, ColorRGB(1, 1, 1), 12, 0, 0, 2)
+        else
+            if numBlocks <= maxBlocks then
+                drawText(numBlocks.."/"..maxBlocks.." Blocks", planDisplayer.lower.x + 10, planDisplayer.lower.y + offset, ColorRGB(1, 1, 1), 12, 0, 0, 2)
+            else
+                drawText(numBlocks.."/"..maxBlocks.." Blocks", planDisplayer.lower.x + 10, planDisplayer.lower.y + offset, ColorRGB(1, 0.1, 0.1), 12, 0, 0, 2)
+            end
+        end
+        offset = offset + 25
         if currentNodeIndex and complexData[currentNodeIndex] then
             local name = complexData[currentNodeIndex].name
             drawText(name, planDisplayer.lower.x + 10, planDisplayer.lower.y + offset, ColorRGB(1, 1, 1), 15, 0, 0, 2)
@@ -272,12 +284,12 @@ function updatePlan()
         local addedVec = placeBoundingBoxNextToEachOther(mainBB, addedBB, directionToAdd, nodeCoords, offset)
 
         print("addedVec", addedVec:__tostring())
-        debugPrint(3,"Needed ".. timer.microseconds .."μs for preparation")
+        debugPrint(3,"Needed ".. timer.microseconds/1000 .."ms for preparation")
         timer:restart()
         -- add Connectors
         local constructionData, connectionPlan = createConnectionPipes(nodeCoords, addedVec, newPlan, currentNodeIndex)
 
-        debugPrint(3, "Needed ".. timer.microseconds .."μs until merge")
+        debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms until merge")
         timer:restart()
 
 
@@ -293,21 +305,23 @@ function updatePlan()
         print("sel Block main?", isBlockFactoryBlock(tcBlock))
         targetCoreBlockCoord = tcBlock.box.center
 
-        debugPrint(3,"Needed ".. timer.microseconds .."μs for addPlanDisplaced")
+        debugPrint(3,"Needed ".. timer.microseconds/1000 .."ms for addPlanDisplaced")
         timer:restart()
     else
         print("noplan")
     end
     -- set to display
+
+    -- TODO check for config.maxBlockCountMultiplier
     --preview = newPlan
     planDisplayer.plan = newPlan
 
-    debugPrint(3, "Needed ".. timer.microseconds .."μs for Plandisplayer set plan")
+    debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms for Plandisplayer set plan")
     timer:restart()
 
     planDisplayer.center = complexData[currentNodeIndex] and complexData[currentNodeIndex].relativeCoords or newPlan.root.box.center
 
-    debugPrint(3, "Needed ".. timer.microseconds .."μs for Plandisplayer center")
+    debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms for Plandisplayer center")
     timer:restart()
 
     setDirButtonsActive()
@@ -325,7 +339,7 @@ function updatePlan()
         constructionButton.active = true
         constructionButton.tooltip = nil
     end
-    debugPrint(3, "Needed ".. timer.microseconds .."μs for construction of total ".. totalTimer.microseconds .."μs", totalTimer.seconds, totalTimer.secondsStr)
+    debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms for construction of total ".. totalTimer.microseconds/1000 .."ms")
     timer:stop()
     totalTimer:stop()
 end
@@ -536,6 +550,8 @@ function onConstructionButtonPress()
         constructionButton.tooltip = "You need Alliance permission!"
         return
     end
+
+    -- TODO check for config.maxBlockCountMultiplier
     -- TODO use selectedProduction
     local name, args = formatFactoryName(factoryData.production, factoryData.maxNumProductions - 1)
     name = string.gsub(name, "${good}", tostring(args.good))

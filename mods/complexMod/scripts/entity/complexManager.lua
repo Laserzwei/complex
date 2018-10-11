@@ -28,6 +28,7 @@ baseProductionCapacity = config.baseProductionCapacity
 debugPrint = config.debugPrint
 
 rootBlockColor = 8388608 -- == RGB(127,0,0) ~= ColorRGB(0.5,0.0,0.0)
+
 -- Menu items
 local selectedTab = 1               --1:BCU, 2:ICU, 3:TCU, 4:MCU
 
@@ -181,7 +182,6 @@ local timepassedAfterLastCheck = 65
 
 function initialize()
     local station = Entity()
-
     if onClient() then
         if not station:hasScript(FSCRIPT) then
             EntityIcon().icon = "mods/complexMod/textures/icons/complex.png"
@@ -364,6 +364,8 @@ function startConstruction(constructionData)
         player:sendChatMessage(complex.title, 1, msg, unpack(args))
         return
     end
+
+    -- check for config.maxBlockCountMultiplier
 
     -- let the player pay
     player:pay("",requiredMoney, unpack(requiredResources))

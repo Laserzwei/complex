@@ -8,6 +8,7 @@ local factoryMap = {}
 local factoryDisplayer
 local selectedAsteroid
 local factoryPlan
+local blockCountLabel
 
 --Design selection
 local shipSelectionWindow
@@ -33,6 +34,10 @@ function initSFUI(tabWindow)
     cb:setCheckedNoCallback(false)
     --custom designs
     selectDesignButton = factorySelectionWindow:createButton(Rect(310,10,450,35), "Select Design"%_t, "onDesignButtonPress")
+    selectDesignButton.active = false
+
+    blockCountLabel = factorySelectionWindow:createLabel(vec2(450, 10), "#error"%_t, 12)
+    blockCountLabel.wordBreak = false
 
     factorySelector = factorySelectionWindow:createListBox(Rect(10, 40, 250, size.y - 80))
     addFactoriesToSelection(factorySelector)
@@ -97,7 +102,6 @@ function addFactoriesToSelection()
         end
     end
 end
-
 
 function onFactorySelectionPressed(button)
     factorySelectionWindow.visible = true
@@ -226,6 +230,7 @@ function onFactorySelected()
     factoryDisplayer.plan = plan
     factoryPlan = plan
     local rootB = plan:getBlock(plan.rootIndex)
+    blockCountLabel.caption = tostring(factoryPlan.numBlocks).."  Blocks"
     --addFactoriesToSelection()
 end
 
