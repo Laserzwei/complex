@@ -10,7 +10,7 @@ local rand = nil
 local scripts = {}
 local weights = {}
 
-local UpgradeGenerator = {}
+UpgradeGenerator = {}
 
 function UpgradeGenerator.add(script, weight)
     table.insert(scripts, script)
@@ -35,7 +35,6 @@ UpgradeGenerator.add("data/scripts/systems/velocitybypass.lua", 1)
 UpgradeGenerator.add("data/scripts/systems/energytoshieldconverter.lua", 1)
 UpgradeGenerator.add("data/scripts/systems/valuablesdetector.lua", 1)
 UpgradeGenerator.add("data/scripts/systems/lootrangebooster.lua", 1)
-UpgradeGenerator.add("mods/complexMod/scripts/systems/complexModule.lua", 1)
 
 function UpgradeGenerator.initialize(seed)
     if seed then
@@ -123,5 +122,8 @@ function UpgradeGenerator.generateSystem(rarity, weights_in)
 end
 
 UpgradeGenerator.scripts = scripts
+
+local status, retVar = pcall(require, "mods/complexMod/scripts/lib/upgradegenerator")
+if not status then print("Failed to load upgradegenerator of ComplexMod", retVar) end
 
 return UpgradeGenerator
