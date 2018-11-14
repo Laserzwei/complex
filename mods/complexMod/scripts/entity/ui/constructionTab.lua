@@ -5,9 +5,9 @@ require ("mods.complexMod.scripts.entity.ui.subFactorySelection")
 local dirButtonXP, dirButtonYP, dirButtonZP
 local dirButtonXM, dirButtonYM, dirButtonZM
 
-local sliderX
-local sliderY
-local sliderZ
+local sliderX, sliderXValue = nil, 0
+local sliderY, sliderYValue = nil, 0
+local sliderZ, sliderZValue = nil, 0
 local numberBoxX, numberBoxXValue = 0
 local numberBoxY, numberBoxYValue = 0
 local numberBoxZ, numberBoxZValue = 0
@@ -25,7 +25,7 @@ local planDisplayer
 
 --Complex Blockplans
 local addedPlan
-local preview
+local factoryData
 
 --Complex Data
 local selectedProduction
@@ -35,6 +35,7 @@ local currentNodeOffset = vec3(0,0,0)
 local targetCoreBlockIndex
 local targetCoreBlockCoord
 local constructionData = {}     --{nodeOffset = vec3, [buildorder] = {[BlockID]= {["position"] = {x,y,z}, ["size"] = {x,y,z}, ["rootID"] = rootID}}}
+local connectionPlan
 
 local UIinititalised = false
 
@@ -50,11 +51,9 @@ function createConstructionUI(tabWindow)
     container:createFrame(left)
     container:createFrame(right)
 
-    local lister = UIVerticalLister(left, 10, 10)
-    local l = container:createLabel(vec2(), "Select Station"%_t, 14)
-    lister.padding = 0
-    lister:placeElementCenter(l)
-    lister.padding = 10
+    local l = container:createLabel(left.lower + vec2(10, 10), "Select Factory"%_t, 16)
+
+    local lister = UIVerticalLister(Rect(left.lower+vec2(0,35), left.upper), 10, 10)
 
     -- subfactory selection
     initSFUI(tabWindow)
@@ -87,9 +86,9 @@ function createConstructionUI(tabWindow)
     --advanced Slider and Numberbox for X-Axis
     rect = lister:placeCenter(vec2(vsplit.left.width - 20, 30))
     local sliderSplit = UIVerticalSplitter(rect, 5, 0, 0.7)
-    sliderX = container:createSlider(sliderSplit.left, -100, 100, 200, "X"%_t, "updatePlan")
-    sliderX.value = 0
+    sliderX = container:createSlider(sliderSplit.left, -100, 100, 200, "X"%_t, "onSliderUpdate")
     sliderX.segments = 40
+    sliderX:setValueNoCallback(0)
 
     numberBoxX = container:createTextBox(sliderSplit.right, "onNumberfieldEnteredX")
     numberBoxX.text = "0"
@@ -99,9 +98,9 @@ function createConstructionUI(tabWindow)
     --advanced Slider and Numberbox for Y-Axis
     rect = lister:placeCenter(vec2(vsplit.left.width - 20, 30))
     local sliderSplit = UIVerticalSplitter(rect, 5, 0, 0.7)
-    sliderY = container:createSlider(sliderSplit.left, -100, 100, 200, "Y"%_t, "updatePlan")
-    sliderY.value = 0
+    sliderY = container:createSlider(sliderSplit.left, -100, 100, 200, "Y"%_t, "onSliderUpdate")
     sliderY.segments = 40
+    sliderY:setValueNoCallback(0)
 
     numberBoxY = container:createTextBox(sliderSplit.right, "onNumberfieldEnteredY")
     numberBoxY.text = "0"
@@ -111,9 +110,9 @@ function createConstructionUI(tabWindow)
     --advanced Slider and Numberbox for Z-Axis
     rect = lister:placeCenter(vec2(vsplit.left.width - 20, 30))
     local sliderSplit = UIVerticalSplitter(rect, 5, 0, 0.7)
-    sliderZ = container:createSlider(sliderSplit.left, -100, 100, 200, "Z"%_t, "updatePlan")
-    sliderZ.value = 0
+    sliderZ = container:createSlider(sliderSplit.left, -100, 100, 200, "Z"%_t, "onSliderUpdate")
     sliderZ.segments = 40
+    sliderZ:setValueNoCallback(0)
 
     numberBoxZ = container:createTextBox(sliderSplit.right, "onNumberfieldEnteredZ")
     numberBoxZ.text = "0"
@@ -194,7 +193,7 @@ function cTRenderUI()
         local offset = 10
         local numBlocks = (addedPlan and addedPlan.numBlocks or 0) + Entity():getPlan().numBlocks
         local maxBlocks = config.maxBlockCount
-        if maxBlocks == -1 then
+        if maxBlocks <= -1 then
             drawText(numBlocks.."/".."unlimited"%_t.." Blocks", planDisplayer.lower.x + 10, planDisplayer.lower.y + offset, ColorRGB(1, 1, 1), 12, 0, 0, 2)
         else
             if numBlocks <= maxBlocks then
@@ -212,15 +211,22 @@ function cTRenderUI()
         if addedPlan == nil then return end
         local planMoney = addedPlan:getMoneyValue()
         local planResources = {addedPlan:getResourceValue()}
+        local connectionMoney = connectionPlan:getMoneyValue()
+        local connectionResources = {connectionPlan:getResourceValue()}
 
-        offset = offset + renderPrices(planDisplayer.lower + vec2(10, offset), "Construction Costs"%_t, planMoney, planResources)
+        for i,v in pairs(planResources) do
+            planResources[i] = v + connectionResources[i]
+        end
+
+        offset = offset + renderPrices(planDisplayer.lower + vec2(10, offset), "Construction Costs"%_t, planMoney + connectionMoney, planResources)
     else
 
     end
 end
 
-function setAddedPlan(plan)
+function setAddedPlan(plan, production)
     addedPlan = plan
+    factoryData = production
 end
 
 function updatePlan()
@@ -271,7 +277,7 @@ function updatePlan()
         -- expect selected Plan with its factory core block (as root?)
         -- position Boundingboxes next to each other
         local mainBB, addedBB = newPlan:getBoundingBox(), addedPlan:getBoundingBox()
-        local offset = vec3(sliderX.value + (numberBoxXValue or 0), sliderY.value + (numberBoxYValue or 0), sliderZ.value + (numberBoxZValue or 0))
+        local offset = vec3(sliderXValue + (numberBoxXValue or 0), sliderYValue + (numberBoxYValue or 0), sliderZValue + (numberBoxZValue or 0))
         local nodeCoords
         if complexData[factoryCoreBlock] then
             print("cD has fcb")
@@ -287,7 +293,7 @@ function updatePlan()
         debugPrint(3,"Needed ".. timer.microseconds/1000 .."ms for preparation")
         timer:restart()
         -- add Connectors
-        local constructionData, connectionPlan = createConnectionPipes(nodeCoords, addedVec, newPlan, currentNodeIndex)
+        constructionData, connectionPlan = createConnectionPipes(nodeCoords, addedVec, newPlan, currentNodeIndex)
 
         debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms until merge")
         timer:restart()
@@ -312,8 +318,7 @@ function updatePlan()
     end
     -- set to display
 
-    -- TODO check for config.maxBlockCountMultiplier
-    --preview = newPlan
+    -- TODO check for config.maxBlockCount
     planDisplayer.plan = newPlan
 
     debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms for Plandisplayer set plan")
@@ -326,19 +331,40 @@ function updatePlan()
 
     setDirButtonsActive()
 
-    if  getNodeIDFromNodeOffset(currentNodeOffset + directionToAdd) then
+    if getNodeIDFromNodeOffset(currentNodeOffset + directionToAdd) then
         constructionButton.active = false
     else
         constructionButton.active = true
     end
 
-    if not checkEntityInteractionPermissions(Entity(), nil) then--unpack(mT.permissions[1].requiredPermissions)) then
+    if not checkEntityInteractionPermissions(Entity(), AlliancePrivilege.FoundStations) then--unpack(mT.permissions[1].requiredPermissions)) then
         constructionButton.active = false
         constructionButton.tooltip = "You need Alliance permission!"
     else
         constructionButton.active = true
         constructionButton.tooltip = nil
     end
+
+    if not addedPlan then
+        constructionButton.active = false
+        constructionButton.tooltip = "Select a factory to build!"
+        debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms for construction of total ".. totalTimer.microseconds/1000 .."ms")
+        timer:stop()
+        totalTimer:stop()
+        return
+    else
+        constructionButton.active = true
+        constructionButton.tooltip = nil
+    end
+
+    if (Entity():getPlan().numBlocks + addedPlan.numBlocks) > config.maxBlockCount then
+        constructionButton.active = false
+        constructionButton.tooltip = "Adding this factory building exceeds the block-count-limit!"
+    else
+        constructionButton.active = true
+        constructionButton.tooltip = nil
+    end
+
     debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms for construction of total ".. totalTimer.microseconds/1000 .."ms")
     timer:stop()
     totalTimer:stop()
@@ -511,6 +537,28 @@ function onSetNodeOffsetZM()
     updatePlan()
 end
 
+function onSliderUpdate(slider, value)
+    if not UIinititalised then return end
+    if slider.index ==  sliderX.index then
+        if sliderXValue ~= value then
+            sliderXValue = value
+            updatePlan()
+        end
+    end
+    if slider.index ==  sliderY.index then
+        if sliderYValue ~= value then
+            sliderYValue = value
+            updatePlan()
+        end
+    end
+    if slider.index ==  sliderZ.index then
+        if sliderZValue ~= value then
+            sliderZValue = value
+            updatePlan()
+        end
+    end
+end
+
 function onNumberfieldEnteredX()
     local value = tonumber(numberBoxX.text)
     if value then
@@ -545,13 +593,24 @@ function onNumberfieldEnteredZ()
 end
 
 function onConstructionButtonPress()
-    if not checkEntityInteractionPermissions(Entity(), unpack(mT.permissions[1].requiredPermissions)) then
+    if not checkEntityInteractionPermissions(Entity(), AlliancePrivilege.FoundStations) then --TODO[[unpack(mT.permissions[1].requiredPermissions]])) then
         constructionButton.active = false
         constructionButton.tooltip = "You need Alliance permission!"
         return
     end
 
-    -- TODO check for config.maxBlockCountMultiplier
+    if not addedPlan then
+        constructionButton.active = false
+        constructionButton.tooltip = "Select a factory to build!"
+        return
+    end
+
+    if (Entity():getPlan().numBlocks + addedPlan.numBlocks) > config.maxBlockCount then
+        constructionButton.active = false
+        constructionButton.tooltip = "Adding this factory exceeds the block-count-limit!"
+        return
+    end
+
     -- TODO use selectedProduction
     local name, args = formatFactoryName(factoryData.production, factoryData.maxNumProductions - 1)
     name = string.gsub(name, "${good}", tostring(args.good))
@@ -561,7 +620,7 @@ function onConstructionButtonPress()
 
     currentNodeOffset = nodeOffset
     currentNodeIndex = targetCoreBlockIndex
-    local data = {["name"] = name, ["relativeCoords"] = targetCoreBlockCoord, ["nodeOffset"] = nodeOffset, ["factoryTyp"] = factoryData.production, ["size"] = factoryData.maxNumProductions}
+    local data = {["name"] = name, ["relativeCoords"] = targetCoreBlockCoord, ["nodeOffset"] = nodeOffset, ["factoryTyp"] = factoryData.production, ["size"] = 2}
     local root = Entity():getPlan().rootIndex
     debugPrint(3, "roottable", complexData, root, targetCoreBlockIndex)
 

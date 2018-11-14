@@ -19,6 +19,7 @@ local planSelection
 local selectionPlandisplayer
 local customPlan
 
+local production
 
 function initSFUI(tabWindow)
     local size = vec2(1100, 900)
@@ -74,23 +75,24 @@ function initSFUI(tabWindow)
 
 end
 
+-- searches for mines owned by the complex's  faction (either player or Alliance, never both!)
 function addFactoriesToSelection()
     -- TODO ? sort by most relevant resource-fulfiller > producer-from-results > unconnected
-    local ownedEntities = {Sector():getEntitiesByFaction(Entity().factionIndex)}
-    local listchanged = valid(selectedAsteroid)
-    selectedAsteroid = nil
-    for _,e in ipairs(ownedEntities) do
-        if e.type == EntityType.Asteroid then
-            if e:hasScript("data/scripts/entity/minefounder.lua") then  -- claimed Asteroids
-                listchanged = not listchanged
-                selectedAsteroid = e
-                break
+    local selectedAsteroid = nil
+    if config.mines == false then
+        local ownedEntities = {Sector():getEntitiesByFaction(Entity().factionIndex)}
+        for _,e in ipairs(ownedEntities) do
+            if e.type == EntityType.Asteroid then
+                if e:hasScript("data/scripts/entity/minefounder.lua") then  -- claimed Asteroids
+                    selectedAsteroid = e
+                    break
+                end
+            elseif e.type == EntityType.Station and e:hasScript("data/scripts/entity/merchants/factory.lua") then -- already set up mines
+                --selectedAsteroid = e
             end
-        elseif e.type == EntityType.Station and e:hasScript("data/scripts/entity/merchants/factory.lua") then -- already set up mines
-            --selectedAsteroid = e
         end
     end
-    if listchanged or factorySelector.rows < 1 then
+    if valid(selectedAsteroid) or factorySelector.rows < 1 then
         factoryMap = {}
         factorySelector:clear()
         for _,prod in ipairs(productions) do
@@ -165,11 +167,13 @@ end
 
 function onFactorySelected()
     if factorySelector.selected == -1 then return end
-    local name = factorySelector:getSelectedEntry()
-    local production = factoryMap[factorySelector.selected+1]
-    local tip = name .. "\n"
 
+    --create the production info tooltip
+    local name = factorySelector:getSelectedEntry()
+    production = factoryMap[factorySelector.selected+1]
+    local tip = name .. "\n"
     local str = ""
+
     for _,p in ipairs(production.ingredients) do str = str.."-"..tostring(p.amount).."x  "..p.name.."\n" end
     if str ~= "" then tip = tip .. "Ingredients\n".. str end
     str = ""
@@ -181,6 +185,7 @@ function onFactorySelected()
     tip = tip..createMonetaryString(getFactoryCost(production)).."Cr"
     factorySelector.tooltip = tip
 
+    -- add stationextensions and custom Models to the rootblock
     local arms = 1
     local plan = BlockPlan()
     plan:addBlock(vec3(0,0,0), vec3(5,5,5), plan.rootIndex, -1, ColorInt(rootBlockColor), Material(MaterialType.Trinium) , Matrix(), BlockType.Armor)
@@ -224,20 +229,17 @@ function onFactorySelected()
                 plan:addPlanDisplaced(plan.rootIndex, asteroid, asteroid.rootIndex, vec3(0,0,0))
 
             end
-            --plan = se.addAsteroid(plan)
         end
     end
     factoryDisplayer.plan = plan
     factoryPlan = plan
-    local rootB = plan:getBlock(plan.rootIndex)
     blockCountLabel.caption = tostring(factoryPlan.numBlocks).."  Blocks"
-    --addFactoriesToSelection()
 end
 
 function onFactoryChoosePressed(button)
     factorySelectionWindow.visible = false
     if factorySelector.selected == -1 then return end
-    setAddedPlan(factoryPlan)
+    setAddedPlan(factoryPlan, production)
     updatePlan()
     print("factory choosen")
 end

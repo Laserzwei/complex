@@ -338,7 +338,7 @@ function startConstruction(constructionData)
     local newComplex = complex:getPlan()
     local addedFactoryPlan = addedFactory:getPlan()
 
-    local timer = Timer()
+    local timer = HighResolutionTimer()
     timer:start()
     local player = Player(callingPlayer)
     if (newComplex:getBlock(constructionData[1].BlockID)

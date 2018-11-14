@@ -484,7 +484,7 @@ function StationFounder.foundFactory(goodName, productionIndex)
         player:sendChatMessage("Server"%_t, 1, "Maximum station limit per faction (%s) of this server reached!"%_t, settings.maximumPlayerStations)
         return
     end
-    print("hi1", goodName, productionIndex)
+
     local production = productionsByGood[goodName][productionIndex]
 
     if production == nil then
