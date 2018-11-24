@@ -66,7 +66,7 @@ end
 function TradingUtility.getEntityBuysGood(entity, name)
     local scripts = TradingUtility.getTradeableScripts()
     for _, script in pairs(scripts) do
-        print(script)
+        --print(script)
         local callOk, good = entity:invokeFunction(script, "getBoughtGoodByName", name)
         if callOk == 0 and good then
             return script
@@ -77,7 +77,7 @@ end
 function TradingUtility.getEntitySellsGood(entity, name)
     local scripts = TradingUtility.getTradeableScripts()
     for _, script in pairs(scripts) do
-        print(script)
+        --print(script)
         local callOk, good = entity:invokeFunction(script, "getSoldGoodByName", name)
         if callOk == 0 and good then
             return script
@@ -93,7 +93,7 @@ function TradingUtility.getBuyableAndSellableGoods(station, sellable, buyable)
     if faction then
         local scripts = TradingUtility.getTradeableScripts()
         for _, script in pairs(scripts) do
-            print(script)
+            --print(script)
 
             local results = {station:invokeFunction(script, "getBoughtGoods")}
             local callResult = results[1]

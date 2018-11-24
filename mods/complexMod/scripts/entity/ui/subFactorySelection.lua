@@ -7,7 +7,7 @@ local stationExtensionChecked
 local factoryMap = {}
 local factoryDisplayer
 local selectedAsteroid
-local factoryPlan
+local factoryPlan, factoryPlanCopy
 local blockCountLabel
 
 --Design selection
@@ -188,45 +188,48 @@ function onFactorySelected()
     -- add stationextensions and custom Models to the rootblock
     local arms = 1
     local plan = BlockPlan()
+    copyPlan = BlockPlan()
     plan:addBlock(vec3(0,0,0), vec3(5,5,5), plan.rootIndex, -1, ColorInt(rootBlockColor), Material(MaterialType.Trinium) , Matrix(), BlockType.Armor)
+    copyPlan:addBlock(vec3(0,0,0), vec3(5,5,5), copyPlan.rootIndex, -1, ColorInt(rootBlockColor), Material(MaterialType.Trinium) , Matrix(), BlockType.Armor)
     if customPlan then
         plan:addPlanDisplaced(plan.rootIndex, customPlan, customPlan.rootIndex, vec3(0,0,0))
+        copyPlan:addPlanDisplaced(copyPlan.rootIndex, customPlan, customPlan.rootIndex, vec3(0,0,0))
     end
     if stationExtensionChecked == true then
         if string.match(production.factory, "Solar") then
-            print("solar")
             plan = se.addSolarPanels(plan, arms)
+            copyPlan  = se.addSolarPanels(copyPlan, arms)
         end
 
         if string.match(production.factory, "Farm") or string.match(production.factory, "Ranch") then
-            print("Farm")
             local x = 4 + math.floor(arms * 2.5)
             local y = 5 + arms * 4
 
             plan = se.addFarmingCenters(plan, arms, x, y)
+            copyPlan = se.addFarmingCenters(copyPlan, arms, x, y)
         end
 
         if string.match(production.factory, "Factory")
             or string.match(production.factory, "Manufacturer")
             or string.match(production.factory, "Extractor") then
 
-            print("Fac, Manu, Extr")
             local x = 4 + math.floor(arms * 1.5)
             local y = 5 + arms * 2
 
             plan = se.addProductionCenters(plan, arms, x, y)
+            copyPlan = se.addProductionCenters(copyPlan, arms, x, y)
         end
 
         if string.match(production.factory, "Collector") then
-            print("collector")
             plan = se.addCollectors(plan, arms)
+            copyPlan = se.addCollectors(copyPlan, arms)
         end
 
         if string.match(production.factory, "Mine") or string.match(production.factory, "Oil Rig") then
-            print("Mine")
             if selectedAsteroid ~= nil then
                 local asteroid = selectedAsteroid:getPlan()
                 plan:addPlanDisplaced(plan.rootIndex, asteroid, asteroid.rootIndex, vec3(0,0,0))
+                copyPlan:addPlanDisplaced(copyPlan.rootIndex, asteroid, asteroid.rootIndex, vec3(0,0,0))
 
             end
         end
@@ -239,7 +242,6 @@ end
 function onFactoryChoosePressed(button)
     factorySelectionWindow.visible = false
     if factorySelector.selected == -1 then return end
-    setAddedPlan(factoryPlan, production)
-    updatePlan()
-    print("factory choosen")
+    setAddedPlan(factoryPlan, copyPlan, production)
+    print("Blocks", factoryPlan.numBlocks, copyPlan.numBlocks)
 end

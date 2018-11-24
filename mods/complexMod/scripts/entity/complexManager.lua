@@ -319,6 +319,91 @@ end
 -- ######################################     Both Sided     ############################################# --
 -- ######################################################################################################### --
 
+function checkNewFactory(constructionData, addedPlan, data)
+    if onClient() then invokeServerFunction("checkNewFactory", constructionData, addedPlan, data) return end
+
+    if not checkEntityInteractionPermissions(Entity(), AlliancePrivilege.FoundStations) then --TODO[[unpack(mT.permissions[1].requiredPermissions]])) then
+        print("perms failed")
+        return
+    end
+
+    if not addedPlan then
+        print("no addedPlan")
+        return
+    end
+
+    if (Entity():getPlan().numBlocks + 3 + addedPlan.numBlocks) > config.maxBlockCount then
+        print("block limit reached")
+        return
+    end
+
+    local plan = Entity():getPlan()
+    local addedCoreRoot = false
+    --add proper root block
+    if not constructionData.currentNodeIndex then
+        if not isBlockFactoryBlock(plan.root) then
+            local bp = BlockPlan()
+            constructionData.currentNodeIndex = bp:addBlock(vec3(0,0,0), vec3(5,5,5), -1, -1, ColorInt(rootBlockColor), Material(MaterialType.Trinium) , Matrix(), BlockType.Armor)
+            bp:addPlan(index, plan, plan.rootIndex)
+            plan = bp
+            addedCoreRoot = true
+        else
+            constructionData.currentNodeIndex = plan.rootIndex
+        end
+    end
+    local cD, connPlan = createConnectionPipes(constructionData.nodeCoords, constructionData.addedVec, plan, constructionData.currentNodeIndex)
+
+    --calculate costs
+    local requiredMoney = connPlan:getMoneyValue() + addedPlan:getMoneyValue()
+    local planResources = {addedPlan:getResourceValue()}
+    local connectionResources = {connPlan:getResourceValue()}
+    for i,v in pairs(planResources) do
+        planResources[i] = v + connectionResources[i]
+    end
+    if addedCoreRoot then
+        requiredMoney = requiredMoney + 1140
+        planResources[4] = planResources[4] + 1000  -- 1000 Trinium
+    end
+    print("res", requiredMoney, unpack(planResources))
+
+    local player = Player(callingPlayer)
+    local canPay, msg, args = player:canPay(requiredMoney, unpack(planResources))
+    if not canPay then -- if there was an error, print it
+        player:sendChatMessage(complex.title, 1, msg, unpack(args))
+        return
+    end
+
+    --player:pay("",requiredMoney, unpack(requiredResources))
+    --player:sendChatMessage(complex.title, 0, "Complex Construction begins.")
+
+    -- assemble plan
+    plan:addPlanDisplaced(cD[3].BlockID, addedPlan, addedPlan.rootIndex, constructionData.nodeCoords + constructionData.addedVec)
+    data.factoryBlockId = plan:getBlock(cD[3].BlockID):getChildren()
+    print("plan displaced", cD[3].BlockID, data.factoryBlockId)
+    Entity():setPlan(plan)
+    print("plan set")
+    factoryCreated(data)
+
+    --[[
+    local code = [[
+        function run(plan, constructionData, addedPlan, data)
+            print("in async")
+
+
+            return data
+        end
+    local callback = "factoryCreated"
+    async(callback, code, Entity():getPlan(), constructionData, addedPlan, data)]]
+
+end
+
+function factoryCreated(data)
+    print("here", data.factoryBlockId)
+    --Entity():waitUntilAsyncWorkFinished()
+    print("and there")
+    -- add factory to indexedComplexData
+    -- send changes in indexedComplexData
+end
 
 
 

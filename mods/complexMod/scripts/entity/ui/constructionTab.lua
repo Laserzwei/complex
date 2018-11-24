@@ -5,12 +5,8 @@ require ("mods.complexMod.scripts.entity.ui.subFactorySelection")
 local dirButtonXP, dirButtonYP, dirButtonZP
 local dirButtonXM, dirButtonYM, dirButtonZM
 
-local sliderX, sliderXValue = nil, 0
-local sliderY, sliderYValue = nil, 0
-local sliderZ, sliderZValue = nil, 0
-local numberBoxX, numberBoxXValue = 0
-local numberBoxY, numberBoxYValue = 0
-local numberBoxZ, numberBoxZValue = 0
+local sliderID, sliderVal = {}, {x = 0, y = 0, z = 0}
+local numBoxID, numboxVal = {}, {x = 0, y = 0, z = 0}
 
 local factorySelectionButton
 local directionToAdd = vec3(0,1,0)             -- 0:X+, 1:X-, 2:Y+, 3:Y-, 4:Z+, 5:Z-
@@ -24,7 +20,7 @@ local refreshButton
 local planDisplayer
 
 --Complex Blockplans
-local addedPlan
+local addedPlan, copiedaddedPlan
 local factoryData
 
 --Complex Data
@@ -35,7 +31,8 @@ local currentNodeOffset = vec3(0,0,0)
 local targetCoreBlockIndex
 local targetCoreBlockCoord
 local constructionData = {}     --{nodeOffset = vec3, [buildorder] = {[BlockID]= {["position"] = {x,y,z}, ["size"] = {x,y,z}, ["rootID"] = rootID}}}
-local connectionPlan
+local connectionPlan, connectionData
+local costs = {money = 0, resources = {}}
 
 local UIinititalised = false
 
@@ -86,38 +83,44 @@ function createConstructionUI(tabWindow)
     --advanced Slider and Numberbox for X-Axis
     rect = lister:placeCenter(vec2(vsplit.left.width - 20, 30))
     local sliderSplit = UIVerticalSplitter(rect, 5, 0, 0.7)
-    sliderX = container:createSlider(sliderSplit.left, -100, 100, 200, "X"%_t, "onSliderUpdate")
-    sliderX.segments = 40
-    sliderX:setValueNoCallback(0)
+    local slider = container:createSlider(sliderSplit.left, -100, 100, 200, "X"%_t, "onSliderUpdate")
+    slider.segments = 40
+    slider:setValueNoCallback(0)
+    sliderID[slider.index] = "x"
 
-    numberBoxX = container:createTextBox(sliderSplit.right, "onNumberfieldEnteredX")
-    numberBoxX.text = "0"
-    numberBoxX.allowedCharacters = "-0123456789"
-    numberBoxX.clearOnClick = 1
+    local numBox = container:createTextBox(sliderSplit.right, "onNumberfieldEntered")
+    numBox.text = "0"
+    numBox.allowedCharacters = "-.0123456789"
+    numBox.clearOnClick = 1
+    numBoxID[numBox.index] = "x"
 
     --advanced Slider and Numberbox for Y-Axis
     rect = lister:placeCenter(vec2(vsplit.left.width - 20, 30))
     local sliderSplit = UIVerticalSplitter(rect, 5, 0, 0.7)
-    sliderY = container:createSlider(sliderSplit.left, -100, 100, 200, "Y"%_t, "onSliderUpdate")
-    sliderY.segments = 40
-    sliderY:setValueNoCallback(0)
+    slider = container:createSlider(sliderSplit.left, -100, 100, 200, "Y"%_t, "onSliderUpdate")
+    slider.segments = 40
+    slider:setValueNoCallback(0)
+    sliderID[slider.index] = "y"
 
-    numberBoxY = container:createTextBox(sliderSplit.right, "onNumberfieldEnteredY")
-    numberBoxY.text = "0"
-    numberBoxY.allowedCharacters = "-0123456789"
-    numberBoxY.clearOnClick = 1
+    numBox = container:createTextBox(sliderSplit.right, "onNumberfieldEntered")
+    numBox.text = "0"
+    numBox.allowedCharacters = "-0123456789"
+    numBox.clearOnClick = 1
+    numBoxID[numBox.index] = "y"
 
     --advanced Slider and Numberbox for Z-Axis
     rect = lister:placeCenter(vec2(vsplit.left.width - 20, 30))
     local sliderSplit = UIVerticalSplitter(rect, 5, 0, 0.7)
-    sliderZ = container:createSlider(sliderSplit.left, -100, 100, 200, "Z"%_t, "onSliderUpdate")
-    sliderZ.segments = 40
-    sliderZ:setValueNoCallback(0)
+    slider = container:createSlider(sliderSplit.left, -100, 100, 200, "Z"%_t, "onSliderUpdate")
+    slider.segments = 40
+    slider:setValueNoCallback(0)
+    sliderID[slider.index] = "z"
 
-    numberBoxZ = container:createTextBox(sliderSplit.right, "onNumberfieldEnteredZ")
-    numberBoxZ.text = "0"
-    numberBoxZ.allowedCharacters = "-0123456789"
-    numberBoxZ.clearOnClick = 1
+    numBox = container:createTextBox(sliderSplit.right, "onNumberfieldEntered")
+    numBox.text = "0"
+    numBox.allowedCharacters = "-0123456789"
+    numBox.clearOnClick = 1
+    numBoxID[numBox.index] = "z"
 
     lister.padding = 10
     --creating Node offset Buttons
@@ -191,7 +194,7 @@ end
 function cTRenderUI()
     if factorySelectionWindow.visible == false then
         local offset = 10
-        local numBlocks = (addedPlan and addedPlan.numBlocks or 0) + Entity():getPlan().numBlocks
+        local numBlocks = Entity():getPlan().numBlocks + 3 + (addedPlan and addedPlan.numBlocks or 0)
         local maxBlocks = config.maxBlockCount
         if maxBlocks <= -1 then
             drawText(numBlocks.."/".."unlimited"%_t.." Blocks", planDisplayer.lower.x + 10, planDisplayer.lower.y + offset, ColorRGB(1, 1, 1), 12, 0, 0, 2)
@@ -204,29 +207,22 @@ function cTRenderUI()
         end
         offset = offset + 25
         if currentNodeIndex and complexData[currentNodeIndex] then
-            local name = complexData[currentNodeIndex].name
-            drawText(name, planDisplayer.lower.x + 10, planDisplayer.lower.y + offset, ColorRGB(1, 1, 1), 15, 0, 0, 2)
+            drawText(complexData[currentNodeIndex].name, planDisplayer.lower.x + 10, planDisplayer.lower.y + offset, ColorRGB(1, 1, 1), 15, 0, 0, 2)
             offset = offset + 25
         end
-        if addedPlan == nil then return end
-        local planMoney = addedPlan:getMoneyValue()
-        local planResources = {addedPlan:getResourceValue()}
-        local connectionMoney = connectionPlan:getMoneyValue()
-        local connectionResources = {connectionPlan:getResourceValue()}
-
-        for i,v in pairs(planResources) do
-            planResources[i] = v + connectionResources[i]
+        if addedPlan then
+            offset = offset + renderPrices(planDisplayer.lower + vec2(10, offset), "Construction Costs"%_t, costs.money, costs.resources)
         end
-
-        offset = offset + renderPrices(planDisplayer.lower + vec2(10, offset), "Construction Costs"%_t, planMoney + connectionMoney, planResources)
     else
 
     end
 end
 
-function setAddedPlan(plan, production)
+function setAddedPlan(plan, copyPlan, production)
     addedPlan = plan
+    copiedaddedPlan = copyPlan
     factoryData = production
+    updatePlan()
 end
 
 function updatePlan()
@@ -251,7 +247,7 @@ function updatePlan()
             bp:addPlan(index, newPlan, newPlan.rootIndex)
             newPlan = bp
             hasToPayForRootBlock = true
-            print("neuer Plan", index, bp.rootIndex, newPlan.rootIndex)
+            print("new Plan", index, bp.rootIndex, newPlan.rootIndex)
         end
     end
 
@@ -273,11 +269,15 @@ function updatePlan()
     end
 
     if addedPlan then
+        -- costs
+        local planMoney = addedPlan:getMoneyValue()
+        local planResources = {addedPlan:getResourceValue()}
+
         -- core block chosen
-        -- expect selected Plan with its factory core block (as root?)
+        -- expect selected Plan with its factory core block as root
         -- position Boundingboxes next to each other
         local mainBB, addedBB = newPlan:getBoundingBox(), addedPlan:getBoundingBox()
-        local offset = vec3(sliderXValue + (numberBoxXValue or 0), sliderYValue + (numberBoxYValue or 0), sliderZValue + (numberBoxZValue or 0))
+        local offset = vec3(sliderVal.x + numboxVal.x, sliderVal.y + numboxVal.y, sliderVal.z + numboxVal.z)
         local nodeCoords
         if complexData[factoryCoreBlock] then
             print("cD has fcb")
@@ -287,26 +287,45 @@ function updatePlan()
             nodeCoords = newPlan.root.box.center
         end
 
-        local addedVec = placeBoundingBoxNextToEachOther(mainBB, addedBB, directionToAdd, nodeCoords, offset)
+        local addedVec = placeBoundingBoxNextToEachOther(mainBB, addedBB, directionToAdd, nodeCoords)
+        addedVec = addedVec + offset
 
-        print("addedVec", addedVec:__tostring())
         debugPrint(3,"Needed ".. timer.microseconds/1000 .."ms for preparation")
         timer:restart()
         -- add Connectors
-        constructionData, connectionPlan = createConnectionPipes(nodeCoords, addedVec, newPlan, currentNodeIndex)
+        connectionData, connectionPlan = createConnectionPipes(nodeCoords, addedVec, newPlan, currentNodeIndex)
+        constructionData.nodeCoords = nodeCoords
+        constructionData.addedVec = addedVec
+        if not hasToPayForRootBlock then
+            constructionData.currentNodeIndex = currentNodeIndex
+        end
+
+        local connectionMoney = connectionPlan:getMoneyValue()
+        local connectionResources = {connectionPlan:getResourceValue()}
+
+        for i,v in pairs(planResources) do
+            planResources[i] = v + connectionResources[i]
+        end
+
+        if hasToPayForRootBlock then
+            planMoney = planMoney + 1140
+            planResources[4] = planResources[4] + 1000  -- 1000 Trinium
+        end
+
+        costs.money = planMoney
+        costs.resources = planResources
+
 
         debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms until merge")
         timer:restart()
 
-
-        --add addedPlan to newPlan
-        local connIndex = constructionData[3].BlockID
-        newPlan:addPlanDisplaced(connIndex, addedPlan, addedPlan.rootIndex, nodeCoords + addedVec)
+        constructionData.displacement = nodeCoords + addedVec
+        --add addedPlan to newPlan, this consumes copiedaddedPlan
+        local connIndex = connectionData[3].BlockID
+        newPlan:addPlanDisplaced(connIndex, copiedaddedPlan, copiedaddedPlan.rootIndex, nodeCoords + addedVec)
 
         targetCoreBlockIndex = newPlan:getBlock(connIndex):getChildren()
         local tcBlock = newPlan:getBlock(targetCoreBlockIndex)
-        local rBox = tcBlock.box
-        local rColor = tcBlock.color
         -- is root a valid factory-root-block?
         print("sel Block main?", isBlockFactoryBlock(tcBlock))
         targetCoreBlockCoord = tcBlock.box.center
@@ -314,11 +333,11 @@ function updatePlan()
         debugPrint(3,"Needed ".. timer.microseconds/1000 .."ms for addPlanDisplaced")
         timer:restart()
     else
+        costs.money = 0
+        costs.resources = {}
         print("noplan")
     end
     -- set to display
-
-    -- TODO check for config.maxBlockCount
     planDisplayer.plan = newPlan
 
     debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms for Plandisplayer set plan")
@@ -330,44 +349,38 @@ function updatePlan()
     timer:restart()
 
     setDirButtonsActive()
-
-    if getNodeIDFromNodeOffset(currentNodeOffset + directionToAdd) then
-        constructionButton.active = false
-    else
-        constructionButton.active = true
-    end
-
-    if not checkEntityInteractionPermissions(Entity(), AlliancePrivilege.FoundStations) then--unpack(mT.permissions[1].requiredPermissions)) then
-        constructionButton.active = false
-        constructionButton.tooltip = "You need Alliance permission!"
-    else
-        constructionButton.active = true
-        constructionButton.tooltip = nil
-    end
-
-    if not addedPlan then
-        constructionButton.active = false
-        constructionButton.tooltip = "Select a factory to build!"
-        debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms for construction of total ".. totalTimer.microseconds/1000 .."ms")
-        timer:stop()
-        totalTimer:stop()
-        return
-    else
-        constructionButton.active = true
-        constructionButton.tooltip = nil
-    end
-
-    if (Entity():getPlan().numBlocks + addedPlan.numBlocks) > config.maxBlockCount then
-        constructionButton.active = false
-        constructionButton.tooltip = "Adding this factory building exceeds the block-count-limit!"
-    else
-        constructionButton.active = true
-        constructionButton.tooltip = nil
-    end
-
     debugPrint(3, "Needed ".. timer.microseconds/1000 .."ms for construction of total ".. totalTimer.microseconds/1000 .."ms")
     timer:stop()
     totalTimer:stop()
+
+    local canBuild, error = false, ""
+    if not checkEntityInteractionPermissions(Entity(), AlliancePrivilege.FoundStations) then--unpack(mT.permissions[1].requiredPermissions)) then
+        canBuild = false
+        error = error.."\n".."You need Alliance permission!"
+    else
+        canBuild = true
+        error = ""
+    end
+
+    if not addedPlan then
+        error = error.."\n".."Select a factory to build!"
+        canBuild = false
+    end
+
+    if addedPlan and Entity():getPlan().numBlocks +addedPlan.numBlocks + 3 > config.maxBlockCount then
+        error = error.."\n".."Adding this factory building exceeds the block-count-limit!"
+        canBuild = false
+    end
+
+    if canBuild == true or error == "" then
+        constructionButton.active = true
+        constructionButton.tooltip = nil
+    else
+        constructionButton.active = false
+        constructionButton.tooltip = error
+    end
+
+
 end
 
 function getNodeSuccessor(dir, searchVector)
@@ -404,14 +417,12 @@ end
 
 function getNodeIDFromNodeOffset(offset)
     local plan = Entity():getPlan()
-    local nodeIndex
     for nodeID,data in pairs(complexData) do
         if vec3Equal(data.nodeOffset, offset)then
-            nodeIndex = nodeID
+            print("nodeIndex", nodeID)
+            return nodeID
         end
     end
-    print("nodeIndex", nodeIndex)
-    return nodeIndex
 end
 
 function isNodeInComplexData(nodeOffset)
@@ -539,58 +550,27 @@ end
 
 function onSliderUpdate(slider, value)
     if not UIinititalised then return end
-    if slider.index ==  sliderX.index then
-        if sliderXValue ~= value then
-            sliderXValue = value
-            updatePlan()
-        end
-    end
-    if slider.index ==  sliderY.index then
-        if sliderYValue ~= value then
-            sliderYValue = value
-            updatePlan()
-        end
-    end
-    if slider.index ==  sliderZ.index then
-        if sliderZValue ~= value then
-            sliderZValue = value
-            updatePlan()
-        end
+    local sliderValue = sliderVal[sliderID[slider.index]]
+    if sliderValue ~= value then
+        sliderVal[sliderID[slider.index]] = value
+        updatePlan()
     end
 end
 
-function onNumberfieldEnteredX()
-    local value = tonumber(numberBoxX.text)
+function onNumberfieldEntered(numberBox)
+    if not UIinititalised then return end
+    if string.len(numberBox.text) > 10 then
+        numberBox.text = "0"
+        numboxVal[numBoxID[numberBox.index]] = 0
+        return
+    end
+    local value = tonumber(numberBox.text)
     if value then
-        sliderX.value = 0
-        numberBoxXValue = value
-    else
-        --numberBoxX.text = "0"
+        numboxVal[numBoxID[numberBox.index]] = value
     end
     updatePlan()
 end
 
-function onNumberfieldEnteredY()
-    local value = tonumber(numberBoxY.text)
-    if value then
-        sliderY.value = 0
-        numberBoxYValue = value
-    else
-        --numberBoxY.text = "0"
-    end
-    updatePlan()
-end
-
-function onNumberfieldEnteredZ()
-    local value = tonumber(numberBoxZ.text)
-    if value then
-        sliderZ.value = 0
-        numberBoxZValue = value
-    else
-        --numberBoxZ.text = "0"
-    end
-    updatePlan()
-end
 
 function onConstructionButtonPress()
     if not checkEntityInteractionPermissions(Entity(), AlliancePrivilege.FoundStations) then --TODO[[unpack(mT.permissions[1].requiredPermissions]])) then
@@ -605,16 +585,15 @@ function onConstructionButtonPress()
         return
     end
 
-    if (Entity():getPlan().numBlocks + addedPlan.numBlocks) > config.maxBlockCount then
+    if (Entity():getPlan().numBlocks + 3 + addedPlan.numBlocks) > config.maxBlockCount then
         constructionButton.active = false
         constructionButton.tooltip = "Adding this factory exceeds the block-count-limit!"
         return
     end
 
-    -- TODO use selectedProduction
-    local name, args = formatFactoryName(factoryData.production, factoryData.maxNumProductions - 1)
+    local name, args = formatFactoryName(factoryData, 2)
     name = string.gsub(name, "${good}", tostring(args.good))
-    name = string.gsub(name, "${size}", getFactoryClassBySize(factoryData.maxNumProductions))
+    name = string.gsub(name, "${size}", getFactoryClassBySize(2))
     local nodeOffset = directionToAdd + currentNodeOffset
 
 
@@ -622,28 +601,15 @@ function onConstructionButtonPress()
     currentNodeIndex = targetCoreBlockIndex
     local data = {["name"] = name, ["relativeCoords"] = targetCoreBlockCoord, ["nodeOffset"] = nodeOffset, ["factoryTyp"] = factoryData.production, ["size"] = 2}
     local root = Entity():getPlan().rootIndex
-    debugPrint(3, "roottable", complexData, root, targetCoreBlockIndex)
+    debugPrint(3, "roottable",  root, targetCoreBlockIndex)
 
-    complexData[targetCoreBlockIndex] = data
-    data.factoryBlockId = targetCoreBlockIndex
-
+    --complexData[targetCoreBlockIndex] = data
+    --data.factoryBlockId = targetCoreBlockIndex
     constructionData.nodeOffset = nodeOffset
-    local count = 0
-    for _,_ in pairs(complexData) do
-        count = count + 1
-    end
-    if count > 2 then
-        local status, data = Entity():invokeFunction(CMSCRIPT,"cmOnConstructionButtonPress",constructionData, addedPlan, data)
-    else --initializing
-        local basefab = {   ["name"] = complexData[root].name,
-                            ["relativeCoords"] = complexData[root].relativeCoords,
-                            ["nodeOffset"] = complexData[root].nodeOffset,
-                            ["factoryTyp"] = complexData[root].factoryTyp,
-                            ["size"] = complexData[root].size,
-                            ["factoryBlockId"] = root}
-        local status, data = Entity():invokeFunction(CMSCRIPT,"cmOnConstructionButtonPress",constructionData, addedPlan, data, basefab)
-    end
-    debugPrint(3,"build pressed", nil, currentNodeIndex)
-    EntityIcon().icon = "data/textures/icons/pixel/crate.png"
+
+    local status, data = Entity():invokeFunction(CMSCRIPT,"checkNewFactory",constructionData, addedPlan, data)
+
+    debugPrint(3,"build pressed", nil, currentNodeIndex, status)
+    --TODO EntityIcon().icon = "data/textures/icons/pixel/crate.png"
     constructionButton.active = false                                                                       --Locking The construction Button to prevent inconsistent data. Gets activated after new Complexdata is send to the client
 end

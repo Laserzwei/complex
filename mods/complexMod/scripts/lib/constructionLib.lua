@@ -15,7 +15,7 @@ function applyIndexedToComplexdata(pIndexedComplexData)
     return list
 end
 
-function placeBoundingBoxNextToEachOther(mainBB, addedBB, directionToAdd, nodeCoords, offset)
+function placeBoundingBoxNextToEachOther(mainBB, addedBB, directionToAdd, nodeCoords)
     local vec = vec3(0, 0, 0)
 
     if directionToAdd.x + directionToAdd.y + directionToAdd.z >= 0 then
@@ -23,12 +23,12 @@ function placeBoundingBoxNextToEachOther(mainBB, addedBB, directionToAdd, nodeCo
     else
         vec = (mainBB.lower - nodeCoords - addedBB.upper) * directionToAdd:__unm()
     end
-    return vec  + offset
+    return vec
 end
 
 function createConnectionPipes(nodeCoords, offset, plan, currentNodeIndex)
-    local connectionPlan = BlockPlan()
-    local constructionData = {}
+    local connectionPlan = BlockPlan()  -- money plan
+    local connectionData = {}
 
 
     local sizeY = vec3(2, math.abs(offset.y) - 2, 2)
@@ -40,22 +40,17 @@ function createConnectionPipes(nodeCoords, offset, plan, currentNodeIndex)
 
     local connectorY = plan:addBlock(posY, sizeY, currentNodeIndex, -1, ColorRGB(0.5, 0.5, 0.5), Material(MaterialType.Xanion) , Matrix(), BlockType.Hull)
     connectionPlan:addBlock(posY, sizeY, connectionPlan.rootIndex, -1, ColorRGB(0.5, 0.5, 0.5), Material(MaterialType.Xanion) , Matrix(), BlockType.Hull)                      --For price calculation
-    constructionData[1] = {["BlockID"] = connectorY,["position"] = vec3ToTable(posY), ["size"] = vec3ToTable(sizeY), ["rootID"] = currentNodeIndex}
+    connectionData[1] = {["BlockID"] = connectorY,["position"] = vec3ToTable(posY), ["size"] = vec3ToTable(sizeY), ["rootID"] = currentNodeIndex}
 
     local connectorX = plan:addBlock(posX, sizeX, connectorY, -1, ColorRGB(0.5, 0.5, 0.5), Material(MaterialType.Xanion) , Matrix(), BlockType.Hull)
     connectionPlan:addBlock(posX, sizeX, connectionPlan.rootIndex, -1, ColorRGB(0.5, 0.5, 0.5), Material(MaterialType.Xanion) , Matrix(), BlockType.Hull)                      --For price calculation
-    constructionData[2] = {["BlockID"] = connectorX,["position"] = vec3ToTable(posX), ["size"] = vec3ToTable(sizeX), ["rootID"] = connectorY}
+    connectionData[2] = {["BlockID"] = connectorX,["position"] = vec3ToTable(posX), ["size"] = vec3ToTable(sizeX), ["rootID"] = connectorY}
 
     local connectorZ = plan:addBlock(posZ, sizeZ, connectorX, -1, ColorRGB(0.5, 0.5, 0.5), Material(MaterialType.Xanion) , Matrix(), BlockType.Hull)
     connectionPlan:addBlock(posZ, sizeZ, connectionPlan.rootIndex, -1, ColorRGB(0.5, 0.5, 0.5), Material(MaterialType.Xanion) , Matrix(), BlockType.Hull)                      --For price calculation
-    constructionData[3] = {["BlockID"] = connectorZ,["position"] = vec3ToTable(posZ), ["size"] = vec3ToTable(sizeZ), ["rootID"] = connectorX}
+    connectionData[3] = {["BlockID"] = connectorZ,["position"] = vec3ToTable(posZ), ["size"] = vec3ToTable(sizeZ), ["rootID"] = connectorX}
 
-    --local targetCoreBlockCoord = nodeCoords + offset
-    --local targetCoreBlockIndex = plan:addBlock(targetCoreBlockCoord, vec3(1,1,1), connectorZ, -1, ColorInt(rootBlockColor), Material(MaterialType.Trinium) , Matrix(), BlockType.Armor)
-    --connectionPlan:addBlock(targetCoreBlockCoord, vec3(5,5,5), connectionPlan.rootIndex, -1, ColorInt(rootBlockColor), Material(MaterialType.Trinium) , Matrix(), BlockType.Armor)                   --For price calculation
-    --constructionData[4] = {["BlockID"] = targetCoreBlockIndex,["position"] = vec3ToTable(targetCoreBlockCoord), ["size"] = vec3ToTable(vec3(5,5,5)), ["rootID"] = connectorZ}
-
-    return constructionData, connectionPlan
+    return connectionData, connectionPlan
 end
 
 function isBlockFactoryBlock(blockPlanBlock)
@@ -73,4 +68,29 @@ function isBlockFactoryBlock(blockPlanBlock)
     else
         return false
     end
+end
+
+-- not used, because to slow: ~10ms /100Blocks
+-- blockplan_in has to have at least 1 Block (root)
+-- don't add outPlan/rootIndex as attribute, when calling
+function deepCopyBlockPlan(blockplan_in, outPlan, rootIndex)
+    local outPlan = outPlan or BlockPlan()
+    if not rootIndex then
+        local root = blockplan_in.root
+        --maybe root.box.center for position?
+        local suc = outPlan:addBlock(root.box.position, root.box.size, -1, root.index, root.color, root.material, root.orientation, root.blockIndex)
+        local hasChildren = root:getChildren()
+        if hasChildren then
+            outPlan = deepCopyBlockPlan(blockplan_in, outPlan, root.index)
+        end
+    else
+        local root = blockplan_in:getBlock(rootIndex)
+        children = {root:getChildren()}
+        for _, childIndex in ipairs(children) do
+            local child = blockplan_in:getBlock(childIndex)
+            outPlan:addBlock(child.box.position, child.box.size, root.index, childIndex, child.color, child.material, child.orientation, child.blockIndex)
+            outPlan = deepCopyBlockPlan(blockplan_in, outPlan, child.index)
+        end
+    end
+    return outPlan
 end
